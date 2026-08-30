@@ -98,6 +98,8 @@ uv sync
 cp evomesh.yaml.example evomesh.yaml
 uv run evomesh</code></pre>
           <p>On PowerShell, replace <code>cp</code> with <code>Copy-Item</code>. The host still reaches <code>READY</code> when the model endpoint is unavailable and explains what must be fixed; inference waits for a healthy provider.</p>
+          <h4>Windows Control Center</h4>
+          <p>On Windows, double-click <code>start-evomesh.bat</code> to synchronize the environment and open the WinForms Control Center. It provides Start/Stop controls, chat and slash commands, Agent Architect, per-agent model management, and a settings editor. Use <code>start-evomesh-console.bat</code> for direct terminal access.</p>
         </section>
 
         <hr><section id="environment">
@@ -113,7 +115,7 @@ uv run evomesh</code></pre>
           <h3 id="bdi">BDI-inspired mind</h3>
           <p>Beliefs, goals, and intentions provide the initial cognitive shape. They are structured state, not a large hidden system prompt, and the architecture allows a later cognition strategy to replace BDI.</p>
           <h3 id="architect">Agent Architect</h3>
-          <p>Select Architect, describe the need, then answer its questions about name, purpose, constraints, filesystem access, and skills. It builds a candidate definition. <code>/confirm</code> activates and persists it; <code>/cancel</code> discards it.</p>
+          <p>Select Architect, describe the need, then answer its questions about name, purpose, constraints, filesystem access, skills, and provider/model. It builds a candidate definition. <code>/confirm</code> activates, starts, persists, and selects it; <code>/cancel</code> discards it.</p>
           <pre><code class="text">evomesh&gt; /chat architect
 evomesh&gt; Create a research agent
 architect&gt; What should the new agent be called?</code></pre>
@@ -138,6 +140,7 @@ architect&gt; What should the new agent be called?</code></pre>
           <h4>Ollama</h4><p>The default adapter checks <code>/api/tags</code>, reports whether the configured model is installed, and calls <code>/api/generate</code>.</p>
           <h4>InferHub</h4><p>InferHub is an optional local/self-hosted provider through its OpenAI-compatible endpoint. EvoMesh does not require it.</p>
           <h4>OpenAI-compatible local endpoint</h4><p>The generic adapter supports local servers exposing <code>/models</code> and <code>/chat/completions</code>. “OpenAI-compatible” describes the wire format, not a cloud dependency.</p>
+          <h4>One model per agent</h4><p>Every agent persists its own provider and model name, and the runtime passes that model on each inference call. Agents can therefore use different Ollama models concurrently. Change an assignment from the Control Center or with <code>/model "Agent Name" qwen3:14b ollama</code>; only that agent is safely restarted.</p>
         </section>
 
         <hr><section id="evolution">
@@ -168,7 +171,8 @@ architect&gt; What should the new agent be called?</code></pre>
         <hr><section id="console">
           <h2>CLI / Console</h2>
           <pre><code class="text">/help              /status             /agents
-/skills            /chat &lt;agent&gt;       /confirm
+/skills            /models ollama      /chat &lt;agent&gt;
+/model ...         /agent start|stop   /confirm
 /grant ...         /revoke ...         /evolution status
 /exit</code></pre>
           <p>Plain text goes to the selected agent. The console implements a channel contract so future adapters can be added without changing agent logic.</p>
@@ -176,7 +180,7 @@ architect&gt; What should the new agent be called?</code></pre>
 
         <hr><section id="status">
           <h2>Project Status</h2>
-          <div class="card status-card"><div class="card-body"><strong>Implemented in v0.1 foundation:</strong> local boot, SQLite migrations, system-agent registry, async messaging, Architect interview and persistence, grants, shared built-in skills, model health, isolated candidate creation, validation commands, supervisor metadata, CI, and mock-backed tests.</div></div>
+          <div class="card status-card"><div class="card-body"><strong>Implemented in v0.1 foundation:</strong> local boot, Windows Control Center and BAT launchers, SQLite migrations, system-agent registry, async messaging, Architect interview and persistence, per-agent model selection, grants, shared built-in skills, model health, isolated candidate creation, validation commands, supervisor metadata, CI, and mock-backed tests.</div></div>
           <p class="mt-3"><strong>Experimental:</strong> model reasoning behavior, mutation authoring, Git lineage, and promotion workflow. <strong>Not implemented:</strong> hardened OS sandbox, web UI, Telegram, PDF/OCR, distributed runtime, cloud providers, or automatic production promotion.</p>
         </section>
 
