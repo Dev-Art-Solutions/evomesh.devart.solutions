@@ -97,9 +97,12 @@ $('#sidebarCollapse').on('click', function () {
    Sections Scroll
 -------------------------- */
 
-$('.smooth-scroll,.idocs-navigation a').on('click', function() {
-	event.preventDefault();
+$('.smooth-scroll,.idocs-navigation a').on('click', function(event) {
     var sectionTo = $(this).attr('href');
+    if (!sectionTo || sectionTo.charAt(0) !== '#' || !$(sectionTo).length) {
+        return;
+    }
+    event.preventDefault();
 	$('html, body').stop().animate({
       scrollTop: $(sectionTo).offset().top - 120}, 1000, 'easeInOutExpo');
 });
