@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, shrink-to-fit=no">
+  <link href="assets/images/favicon.png" rel="icon" type="image/png">
+  <title>EvoMesh — local-first multi-agent environment</title>
+  <meta name="description" content="EvoMesh documentation: persistent agents, local models, shared skills, filesystem grants, messaging, and safe generational evolution.">
+  <meta name="author" content="Dev-Art-Solutions">
+  <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/vendor/highlight.js/styles/github.css">
+  <link rel="stylesheet" href="assets/css/stylesheet.css">
+  <style>
+    a, .idocs-navigation .nav .nav-link.active, .idocs-navigation .nav .nav-link:hover { color: #079fba; }
+    .btn-primary { background: linear-gradient(90deg, #0874d1, #08bca8); border: 0; }
+    .brand-logo { height: 82px; max-width: 340px; object-fit: contain; }
+    .status-card { border-left: 4px solid #51bf37; }
+  </style>
+</head>
+<body data-spy="scroll" data-target=".idocs-navigation" data-offset="125">
+  <div class="preloader"><div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></div>
+  <div id="main-wrapper">
+    <header id="header" class="sticky-top">
+      <nav class="primary-menu navbar navbar-expand-lg navbar-dropdown-dark">
+        <div class="container-fluid">
+          <button id="sidebarCollapse" class="navbar-toggler d-block d-md-none" type="button"><span></span><span class="w-75"></span><span class="w-50"></span></button>
+          <a class="logo ml-md-3" href="index.html" title="EvoMesh"><img class="brand-logo" src="assets/images/logo.png" alt="EvoMesh"></a>
+          <div class="ml-auto">
+            <a target="_blank" href="https://github.com/Dev-Art-Solutions/EvoMesh">GitHub</a>
+            <a class="ml-4" target="_blank" href="https://devart.solutions">Dev-Art Solutions</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+    <div id="content" role="main">
+      <div class="idocs-navigation bg-dark docs-navigation-dark">
+        <ul class="nav flex-column">
+          <li class="nav-item"><a class="nav-link active" href="#overview">Overview</a>
+            <ul class="nav flex-column">
+              <li class="nav-item"><a class="nav-link" href="#principles">Core principles</a></li>
+              <li class="nav-item"><a class="nav-link" href="#architecture">Architecture</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="#quick-start">Quick Start</a></li>
+          <li class="nav-item"><a class="nav-link" href="#environment">Environment</a></li>
+          <li class="nav-item"><a class="nav-link" href="#agents">Agents</a>
+            <ul class="nav flex-column">
+              <li class="nav-item"><a class="nav-link" href="#bdi">BDI mind</a></li>
+              <li class="nav-item"><a class="nav-link" href="#architect">Agent Architect</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="#skills">Skills</a></li>
+          <li class="nav-item"><a class="nav-link" href="#permissions">Permissions</a></li>
+          <li class="nav-item"><a class="nav-link" href="#models">Local Models</a></li>
+          <li class="nav-item"><a class="nav-link" href="#evolution">Evolution</a></li>
+          <li class="nav-item"><a class="nav-link" href="#configuration">Configuration</a></li>
+          <li class="nav-item"><a class="nav-link" href="#console">CLI / Console</a></li>
+          <li class="nav-item"><a class="nav-link" href="#status">Project Status</a></li>
+          <li class="nav-item"><a class="nav-link" href="#roadmap">Roadmap</a></li>
+          <li class="nav-item"><a class="nav-link" href="#built-with">Built with</a></li>
+          <li class="nav-item"><a class="nav-link" href="#license">License</a></li>
+        </ul>
+      </div>
+      <div class="idocs-content"><div class="container">
+        <section id="overview">
+          <h1>EvoMesh</h1>
+          <p class="lead">A local-first environment where persistent agents live, communicate, acquire reusable skills, and evolve in isolated generations.</p>
+          <p>EvoMesh is not a cloud service and an agent is not merely a prompt. The environment owns lifecycle, messaging, state, permissions, model access, skills, health, and evolutionary history. The v0.1 foundation runs on a local machine with SQLite and local model endpoints.</p>
+          <div class="alert alert-warning"><strong>Experimental software.</strong> EvoMesh application permissions are not an OS security sandbox. Review candidate mutations before promotion.</div>
+          <h3 id="principles">Core principles</h3>
+          <ul>
+            <li><strong>Local first:</strong> startup requires no OpenAI, Anthropic, Gemini, or other cloud account.</li>
+            <li><strong>The environment is the system:</strong> agents use environment messaging and services rather than private addresses.</li>
+            <li><strong>Structured minds:</strong> beliefs, goals, intentions, skills, and permissions are persisted data.</li>
+            <li><strong>Generational evolution:</strong> mutations happen in candidate workspaces, never in the active source tree.</li>
+          </ul>
+          <h3 id="architecture">Architecture</h3>
+          <pre><code class="text">Human ──▶ Channel ──▶ EvoMesh Environment
+                         ├─ Agent registry and lifecycle
+                         ├─ Async message bus and mailboxes
+                         ├─ SQLite persistence
+                         ├─ Skill registry ──▶ filesystem policy
+                         ├─ local model providers
+                         └─ candidate workspace ──▶ validation
+
+External supervisor metadata: ACTIVE ◀──▶ LAST-KNOWN-GOOD
+                                      └──▶ CANDIDATE</code></pre>
+        </section>
+
+        <hr><section id="quick-start">
+          <h2>Quick Start</h2>
+          <p>Install Python 3.13+, Git, <a href="https://docs.astral.sh/uv/" target="_blank">uv</a>, and optionally Ollama.</p>
+          <pre><code class="bash">git clone https://github.com/Dev-Art-Solutions/EvoMesh.git
+cd EvoMesh
+uv sync
+cp evomesh.yaml.example evomesh.yaml
+uv run evomesh</code></pre>
+          <p>On PowerShell, replace <code>cp</code> with <code>Copy-Item</code>. The host still reaches <code>READY</code> when the model endpoint is unavailable and explains what must be fixed; inference waits for a healthy provider.</p>
+        </section>
+
+        <hr><section id="environment">
+          <h2>Environment</h2>
+          <p>The explicit <code>Environment</code> service coordinates registry, lifecycle, bus, persistence, skills, grants, providers, and health. It boots the four system agents—Agent Architect, Guardian, Evaluator, and Environment Evolver—and restores user agents from SQLite.</p>
+          <h4>Messaging and persistence</h4>
+          <p>Every agent owns a mailbox. Direct and broadcast messages carry conversation and correlation IDs and are saved before delivery. SQLite migrations create durable records for agents, messages, skills, assignments, grants, environment state, and mutation history.</p>
+        </section>
+
+        <hr><section id="agents">
+          <h2>Agents</h2>
+          <p>An agent definition contains stable identity, type, generation and parentage, purpose, provider/model, mind state, skills, permissions, memory behavior, lifecycle state, and timestamps. Runtime loops observe mailbox messages, call the configured local model, and return correlated responses through the bus.</p>
+          <h3 id="bdi">BDI-inspired mind</h3>
+          <p>Beliefs, goals, and intentions provide the initial cognitive shape. They are structured state, not a large hidden system prompt, and the architecture allows a later cognition strategy to replace BDI.</p>
+          <h3 id="architect">Agent Architect</h3>
+          <p>Select Architect, describe the need, then answer its questions about name, purpose, constraints, filesystem access, and skills. It builds a candidate definition. <code>/confirm</code> activates and persists it; <code>/cancel</code> discards it.</p>
+          <pre><code class="text">evomesh&gt; /chat architect
+evomesh&gt; Create a research agent
+architect&gt; What should the new agent be called?</code></pre>
+        </section>
+
+        <hr><section id="skills">
+          <h2>Skills</h2>
+          <p>The shared registry supports discovery, attachment, and invocation. Initial built-ins are Filesystem Read/Write, Markdown Read/Write, and Git Status/Diff. Missing capabilities return a structured missing-skill error. Automatic skill generation is planned.</p>
+        </section>
+
+        <hr><section id="permissions">
+          <h2>Filesystem grants</h2>
+          <p>Having a file skill does not grant path access. EvoMesh resolves paths before comparison, checks the requested operation, persists grants, and raises a structured denial when no matching ancestor grant exists.</p>
+          <pre><code class="text">/grant Researcher D:/Papers read
+/grant Researcher D:/Research write
+/revoke Researcher D:/Papers</code></pre>
+          <div class="alert alert-info">These controls constrain EvoMesh skills. They do not claim to contain arbitrary native processes or hostile code at the operating-system level.</div>
+        </section>
+
+        <hr><section id="models">
+          <h2>Local Models</h2>
+          <h4>Ollama</h4><p>The default adapter checks <code>/api/tags</code>, reports whether the configured model is installed, and calls <code>/api/generate</code>.</p>
+          <h4>InferHub</h4><p>InferHub is an optional local/self-hosted provider through its OpenAI-compatible endpoint. EvoMesh does not require it.</p>
+          <h4>OpenAI-compatible local endpoint</h4><p>The generic adapter supports local servers exposing <code>/models</code> and <code>/chat/completions</code>. “OpenAI-compatible” describes the wire format, not a cloud dependency.</p>
+        </section>
+
+        <hr><section id="evolution">
+          <h2>Evolution and generations</h2>
+          <p>The Environment Evolver creates a numbered candidate copy that excludes active data, Git internals, virtual environments, and generations. The small external supervisor records active, last-known-good, and candidate metadata atomically.</p>
+          <pre><code class="text">Generation N (ACTIVE)
+  └─ create isolated N+1 (CANDIDATE)
+       ├─ uv sync
+       ├─ ruff
+       ├─ pyright
+       └─ pytest
+            PASS: eligible for human promotion
+            FAIL: active N remains untouched</code></pre>
+          <p>Validation results and mutation objectives are persisted. Human-confirmed promotion and rollback metadata exist; autonomous production promotion is deliberately out of scope for v0.1.</p>
+        </section>
+
+        <hr><section id="configuration">
+          <h2>Configuration</h2>
+          <p>Copy <code>evomesh.yaml.example</code> to <code>evomesh.yaml</code>. Configure the environment name, SQLite path, generations path, log level, default provider, endpoint, and model. Keep secrets out of Git.</p>
+          <pre><code class="yaml">models:
+  default_provider: ollama
+  providers:
+    ollama:
+      base_url: http://127.0.0.1:11434
+      model: qwen3</code></pre>
+        </section>
+
+        <hr><section id="console">
+          <h2>CLI / Console</h2>
+          <pre><code class="text">/help              /status             /agents
+/skills            /chat &lt;agent&gt;       /confirm
+/grant ...         /revoke ...         /evolution status
+/exit</code></pre>
+          <p>Plain text goes to the selected agent. The console implements a channel contract so future adapters can be added without changing agent logic.</p>
+        </section>
+
+        <hr><section id="status">
+          <h2>Project Status</h2>
+          <div class="card status-card"><div class="card-body"><strong>Implemented in v0.1 foundation:</strong> local boot, SQLite migrations, system-agent registry, async messaging, Architect interview and persistence, grants, shared built-in skills, model health, isolated candidate creation, validation commands, supervisor metadata, CI, and mock-backed tests.</div></div>
+          <p class="mt-3"><strong>Experimental:</strong> model reasoning behavior, mutation authoring, Git lineage, and promotion workflow. <strong>Not implemented:</strong> hardened OS sandbox, web UI, Telegram, PDF/OCR, distributed runtime, cloud providers, or automatic production promotion.</p>
+        </section>
+
+        <hr><section id="roadmap"><h2>Roadmap</h2><p>Next: controlled model-authored patches and structured Git commits; Skill Architect and skill generation; richer memory; web and Telegram channels; benchmarks; stronger process isolation; and policy-driven promotion.</p></section>
+        <hr><section id="built-with"><h2>Built with</h2><p>Python 3.13, asyncio, Pydantic, SQLite/aiosqlite, HTTPX, uv, Ruff, Pyright, pytest, Git, and local models such as Ollama or InferHub.</p></section>
+        <hr><section id="license"><h2>License</h2><p>EvoMesh and this documentation are available under the MIT License.</p></section>
+      </div></div>
+    </div>
+    <footer id="footer" class="section bg-dark footer-text-light"><div class="container text-center"><p>Copyright &copy; 2026 <a href="https://devart.solutions">Dev-Art Solutions</a>. MIT licensed.</p></div></footer>
+  </div>
+  <a id="back-to-top" data-toggle="tooltip" title="Back to Top" href="javascript:void(0)"><i class="fa fa-chevron-up"></i></a>
+  <script src="assets/vendor/jquery/jquery.min.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/highlight.js/highlight.min.js"></script>
+  <script src="assets/js/theme.js"></script>
+</body>
+</html>
+
