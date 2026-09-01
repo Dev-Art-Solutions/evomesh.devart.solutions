@@ -126,6 +126,7 @@
         <li><a href="#agents"><span class="ev-numeral">IV</span><span>Agents</span></a>
           <ul>
             <li><a href="#lifecycle">Status and phase</a></li>
+            <li><a href="#current-work">Asking an agent what it is working on</a></li>
             <li><a href="#architect">Agent Architect</a></li>
           </ul>
         </li>
@@ -258,7 +259,7 @@ uv run evomesh</code></pre>
         </p>
       </aside>
 
-      <h4>Windows Control Center</h4>
+      <h3 class="ev-subhead">Windows Control Center</h3>
       <p>
         On Windows, double-click <code>start-evomesh.bat</code> to synchronize the environment and open
         the WinForms Control Center: start and stop the mesh, attach to an already-running local mesh
@@ -294,7 +295,7 @@ uv run evomesh</code></pre>
         <figcaption><span class="ev-label">Fig. III·I</span> The environment mediates every relationship in the mesh.</figcaption>
       </figure>
 
-      <h4>Messaging and persistence</h4>
+      <h3 class="ev-subhead">Messaging and persistence</h3>
       <p>
         Every agent owns an asynchronous mailbox. Direct and broadcast messages carry conversation
         and correlation identifiers and are persisted before delivery. SQLite migrations create durable
@@ -302,7 +303,7 @@ uv run evomesh</code></pre>
         history. Agent business logic never calls another agent object directly.
       </p>
 
-      <h4>The shared world</h4>
+      <h3 class="ev-subhead">The shared world</h3>
       <p>
         The environment regenerates <code>workspace/context.md</code>: the roster, each agent's phase
         and current goal, and the evolution stage. Every agent can read it, which is how an agent knows
@@ -337,7 +338,7 @@ uv run evomesh</code></pre>
             <img src="assets/images/agent-architect.png" width="560" height="543" loading="lazy" alt="Plate of a drafting compass inside construction circles."></picture>
           <div class="ev-plate-body">
             <span class="ev-label">Figura I</span>
-            <h4>Agent Architect</h4>
+            <h3>Agent Architect</h3>
             <p>Turns one sentence from a human into a complete, working agent definition. Reactive: it never invents agents nobody asked for.</p>
           </div>
         </article>
@@ -346,7 +347,7 @@ uv run evomesh</code></pre>
             <img src="assets/images/agent-guardian.png" width="560" height="543" loading="lazy" alt="Plate of a shield set within an arched gate."></picture>
           <div class="ev-plate-body">
             <span class="ev-label">Figura II</span>
-            <h4>Guardian</h4>
+            <h3>Guardian</h3>
             <p>Perceives provider health and every agent's phase, and wants degradation investigated. Deterministic: it needs no model at all.</p>
           </div>
         </article>
@@ -355,7 +356,7 @@ uv run evomesh</code></pre>
             <img src="assets/images/agent-evaluator.png" width="560" height="543" loading="lazy" alt="Plate of a balance scale on a geometric grid."></picture>
           <div class="ev-plate-body">
             <span class="ev-label">Figura III</span>
-            <h4>Evaluator</h4>
+            <h3>Evaluator</h3>
             <p>Reads the newest candidate's validation record and reports the verdict — including that a candidate has not been validated at all.</p>
           </div>
         </article>
@@ -364,7 +365,7 @@ uv run evomesh</code></pre>
             <img src="assets/images/agent-evolver.png" width="560" height="543" loading="lazy" alt="Plate of interlocking gears branching from a central wheel."></picture>
           <div class="ev-plate-body">
             <span class="ev-label">Figura IV</span>
-            <h4>Environment Evolver</h4>
+            <h3>Environment Evolver</h3>
             <p>Opens a candidate generation, proposes one mutation, validates it, and hands it to you. One stage per cycle, one candidate at a time.</p>
           </div>
         </article>
@@ -398,6 +399,39 @@ Environment Evolver [system] active/waiting-human ollama:qwen3 cycles=4
     goal: Improve EvoMesh by one validated candidate generation at a time.
     last: generation 2 is waiting for a human to promote or discard it</code></pre>
       </div>
+
+      <h3 id="current-work">Asking an agent what it is working on</h3>
+      <p>
+        You can simply ask it, in chat, and the answer is not the model guessing at its own life. Every
+        reply is prompted with a <code>CURRENT WORK</code> block the runtime fills in as the message
+        arrives: phase, cycles completed, the goal and the plan step in hand, the last finished step, the
+        last error, and how long until the next cycle. The runtime owns those facts; the model only
+        phrases them.
+      </p>
+      <p>
+        A behavior that drives a pipeline of its own adds to that block. Ask the Environment Evolver and
+        you get the live stage, the candidate generation, the objective, the file it changed, the
+        candidate workspace and the validation verdict — read at the moment you ask, rather than
+        remembered from the last cycle, which may be a full interval old.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">evomesh&gt; /chat evolver
+evomesh&gt; what are you working on?
+Environment Evolver&gt; Generation 4 is open for "Improve EvoMesh by one validated
+candidate generation at a time". I am on the validate step, running sync, ruff,
+pyright, pytest and the smoke test; nothing is promoted yet.</code></pre>
+      </div>
+
+      <aside class="ev-callout">
+        <span class="ev-label">Nota</span>
+        <p>
+          <code>/agents</code> answers the same question for every agent at once and spends no model
+          call at all. Ask in chat when you want the reasoning behind the state; run the command when you
+          want the state.
+        </p>
+      </aside>
 
       <h3 id="architect">Agent Architect</h3>
       <p>
@@ -578,7 +612,7 @@ Nothing compacted yet.
 - 2026-09-01T01:06Z (reflective) Weekly summaries belong in D:/notes/summaries.</code></pre>
       </div>
 
-      <h4>Why the budget exists</h4>
+      <h3 class="ev-subhead">Why the budget exists</h3>
       <p>
         Every prompt is assembled under a hard character budget, carrying identity, goal, current
         beliefs, the committed plan, memory, working context, and recent inbox in that order. This is
@@ -655,13 +689,13 @@ Nothing compacted yet.
         <p class="ev-section-summary">One model per agent, all of them yours.</p>
       </header>
 
-      <h4>Ollama</h4>
+      <h3 class="ev-subhead">Ollama</h3>
       <p>The default adapter checks <code>/api/tags</code>, reports whether the configured model is installed, and calls <code>/api/generate</code>.</p>
-      <h4>InferHub</h4>
+      <h3 class="ev-subhead">InferHub</h3>
       <p><a href="https://inferhub.devart.solutions" target="_blank" rel="noopener">InferHub</a> is an optional local or self-hosted provider through its OpenAI-compatible endpoint. EvoMesh does not require it.</p>
-      <h4>OpenAI-compatible local endpoint</h4>
+      <h3 class="ev-subhead">OpenAI-compatible local endpoint</h3>
       <p>The generic adapter supports any local server exposing <code>/models</code> and <code>/chat/completions</code>. “OpenAI-compatible” describes the wire format, not a cloud dependency.</p>
-      <h4>One model per agent</h4>
+      <h3 class="ev-subhead">One model per agent</h3>
       <p>
         Every agent persists its own provider and model name, and the runtime passes that model on each
         inference call, so agents can use different Ollama models concurrently. Changing an assignment
@@ -680,7 +714,10 @@ Nothing compacted yet.
         <p>
           Reasoning models emit <code>&lt;think&gt;</code> blocks. EvoMesh strips them before anything is
           stored or re-prompted; left in place they dominate the next prompt and get written into memory
-          as if they were conclusions.
+          as if they were conclusions. Only the tidiest models return a matched pair: most chat templates
+          already contain the opening tag, so the model answers with the reasoning itself and ends it with
+          a bare <code>&lt;/think&gt;</code>, and a truncated answer opens a block it never closes. Both
+          halves are stripped, because both are reasoning rather than an answer.
         </p>
       </aside>
     </section>
@@ -741,6 +778,21 @@ Nothing compacted yet.
         pipeline for the next objective.
       </p>
 
+      <p>
+        The validation suite runs through <code>uv</code>, which the Windows launcher happily starts
+        EvoMesh with while never putting it on <code>PATH</code>. The validator therefore resolves it the
+        way the launcher does — <code>PATH</code> first, then a <code>.tools/uv/bin/uv.exe</code> above
+        the checkout — and a toolchain it cannot find is recorded as a failed validation with the reason,
+        not raised as an error that reads like a broken mutation.
+      </p>
+
+      <p>
+        The mutation itself is one JSON object carrying a complete file. A local reasoning model rarely
+        gets that right on the first attempt, so its reasoning is stripped before parsing, and one repair
+        pass quotes back exactly what could not be read. The request goes to the Evolver's own model:
+        assigning it a stronger one is a decision the pipeline honours.
+      </p>
+
       <div class="ev-code">
         <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
 <pre><code class="language-plaintext">/evolution status
@@ -796,7 +848,8 @@ models:
   providers:
     ollama:
       base_url: http://127.0.0.1:11434
-      model: qwen3</code></pre>
+      model: qwen3
+      timeout_seconds: 600   # one answer from a 30B model on a busy card</code></pre>
       </div>
 
       <div class="ev-table-wrap">
@@ -808,6 +861,7 @@ models:
             <tr><td><code>runtime.prompt_chars</code></td><td>Ceiling on the whole assembled prompt. Everything else is trimmed to fit inside it.</td></tr>
             <tr><td><code>evolution.autonomous</code></td><td>When false the Evolver is visibly parked rather than silently idle.</td></tr>
             <tr><td><code>evolution.auto_validate</code></td><td>When false a candidate is proposed but never validated, and reported as such.</td></tr>
+            <tr><td><code>models.providers.*.timeout_seconds</code></td><td>How long one inference may take, per provider. Default 600. A 30B model on a busy GPU regularly needs minutes, and a ceiling that is too low reads to a human as a broken agent.</td></tr>
           </tbody>
         </table>
       </div>
@@ -960,7 +1014,8 @@ models:
           messaging; system-agent bootstrap with standing goals; the BDI reasoning cycle with belief
           revision, option generation, commitment, and reconsideration; plan libraries and model-authored
           plans; file-backed agent memory with budgeted prompts; separated status and phase; the one-shot
-          Agent Architect; per-agent provider and model selection; filesystem grants; built-in skills;
+          Agent Architect; per-agent provider and model selection; live work reporting, so an agent asked
+          what it is doing answers from runtime state rather than from memory; filesystem grants; built-in skills;
           isolated candidate workspaces; the staged evolution pipeline with validation and supervisor
           metadata; CI; and an automated test suite.
         </p>
@@ -994,7 +1049,7 @@ models:
         longer-term memory with retrieval; a local web channel and Telegram; benchmark-based promotion
         policy; and stronger process isolation.
       </p>
-      <h4>Built with</h4>
+      <h3 class="ev-subhead">Built with</h3>
       <p>
         Python 3.13, asyncio, Pydantic, SQLite and aiosqlite, HTTPX, uv, Ruff, Pyright, pytest, Git, and
         local models served by Ollama or InferHub.
