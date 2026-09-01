@@ -1,0 +1,728 @@
+/* ==========================================================================
+   EvoMesh documentation theme
+   A Renaissance engineering notebook rendered as developer documentation.
+
+   Rule of thumb for every decision in this file:
+   draw the machine like Leonardo, document it like an engineer.
+   Decoration is allowed to be beautiful; it is never allowed to be the
+   thing a reader has to get past to reach the technical content.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light;
+
+  --ev-paper: #f4eedf;
+  --ev-paper-deep: #e8ddc6;
+  --ev-paper-raised: #faf6ec;
+
+  --ev-ink: #302a21;
+  --ev-ink-soft: #5d5342;
+  --ev-ink-muted: #7d7060;
+
+  --ev-sepia: #896f45;
+  --ev-rust: #8d4e36;
+  --ev-olive: #5f6644;
+
+  --ev-border: rgba(74, 58, 38, 0.22);
+  --ev-border-strong: rgba(74, 58, 38, 0.42);
+
+  --ev-code-bg: #27251f;
+  --ev-code-text: #e9dfc8;
+  --ev-code-chrome: #35322a;
+
+  --ev-shadow: rgba(67, 53, 34, 0.14);
+  --ev-shadow-strong: rgba(67, 53, 34, 0.26);
+
+  --ev-serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --ev-display: "Cormorant Garamond", "Source Serif 4", ui-serif, Georgia, serif;
+  --ev-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ev-rail: 16.5rem;
+  --ev-toc: 14.5rem;
+  --ev-header: 3.75rem;
+  --ev-measure: 52rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* A charcoal drafting desk, not a neon console. */
+  --ev-paper: #201e19;
+  --ev-paper-deep: #191713;
+  --ev-paper-raised: #272419;
+
+  --ev-ink: #e9dfc8;
+  --ev-ink-soft: #c3b79c;
+  --ev-ink-muted: #9c8e75;
+
+  --ev-sepia: #b68c59;
+  --ev-rust: #c87d5c;
+  --ev-olive: #9aa473;
+
+  --ev-border: rgba(180, 156, 116, 0.24);
+  --ev-border-strong: rgba(180, 156, 116, 0.46);
+
+  --ev-code-bg: #17150f;
+  --ev-code-text: #e9dfc8;
+  --ev-code-chrome: #262218;
+
+  --ev-shadow: rgba(0, 0, 0, 0.42);
+  --ev-shadow-strong: rgba(0, 0, 0, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   2. Base
+   -------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--ev-header) + 1.5rem); }
+
+body {
+  margin: 0;
+  background-color: var(--ev-paper);
+  color: var(--ev-ink);
+  font-family: var(--ev-serif);
+  font-size: 1.0125rem;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Aged paper, kept faint enough that it never competes with the text.
+   One inline SVG grain beats a downloaded texture at this weight. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(60rem 40rem at 12% -10%, rgba(137, 111, 69, 0.11), transparent 60%),
+    radial-gradient(50rem 34rem at 92% 8%, rgba(141, 78, 54, 0.08), transparent 62%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)' opacity='.22'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] body::before { opacity: 0.28; }
+
+a { color: var(--ev-rust); text-decoration-color: color-mix(in srgb, var(--ev-rust) 40%, transparent); text-underline-offset: 0.18em; }
+a:hover { color: var(--ev-ink); }
+
+:focus-visible {
+  outline: 2px solid var(--ev-rust);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection { background: color-mix(in srgb, var(--ev-sepia) 32%, transparent); }
+
+.ev-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1080;
+  padding: 0.65rem 1rem;
+  background: var(--ev-paper-raised);
+  border: 1px solid var(--ev-border-strong);
+  font-family: var(--ev-mono);
+  font-size: 0.8rem;
+}
+.ev-skip:focus { left: 0.75rem; top: 0.75rem; }
+
+/* Small-caps technical labels: the recurring voice of the notebook. */
+.ev-label {
+  font-family: var(--ev-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--ev-ink-muted);
+}
+
+.ev-latin {
+  font-family: var(--ev-display);
+  font-style: italic;
+  color: var(--ev-ink-muted);
+  letter-spacing: 0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   3. Navbar
+   -------------------------------------------------------------------------- */
+
+.ev-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  min-height: var(--ev-header);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  background: color-mix(in srgb, var(--ev-paper) 88%, transparent);
+  backdrop-filter: blur(9px);
+  border-bottom: 1px solid var(--ev-border);
+}
+
+.ev-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+  flex: none;
+}
+.ev-brand img { width: 34px; height: 34px; border-radius: 50%; }
+.ev-brand-name {
+  font-family: var(--ev-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.09em;
+  line-height: 1;
+}
+.ev-brand-sub {
+  display: block;
+  font-family: var(--ev-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.28em;
+  color: var(--ev-ink-muted);
+  margin-top: 0.15rem;
+}
+
+.ev-nav-links {
+  display: flex;
+  gap: 1.35rem;
+  margin: 0 auto 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.ev-nav-links a {
+  font-family: var(--ev-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ev-ink-soft);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+}
+.ev-nav-links a:hover,
+.ev-nav-links a:focus-visible { color: var(--ev-ink); border-bottom-color: var(--ev-rust); }
+
+.ev-nav-tools { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+
+.ev-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.15rem;
+  padding: 0 0.6rem;
+  background: transparent;
+  color: var(--ev-ink-soft);
+  border: 1px solid var(--ev-border);
+  border-radius: 2px;
+  font-family: var(--ev-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ev-icon-btn:hover { color: var(--ev-ink); border-color: var(--ev-border-strong); background: color-mix(in srgb, var(--ev-sepia) 9%, transparent); }
+.ev-icon-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+.ev-search-btn { min-width: 12rem; justify-content: space-between; }
+.ev-search-btn kbd {
+  font-family: var(--ev-mono);
+  font-size: 0.62rem;
+  padding: 0.1rem 0.32rem;
+  border: 1px solid var(--ev-border);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ev-sepia) 10%, transparent);
+  color: var(--ev-ink-muted);
+}
+
+/* --------------------------------------------------------------------------
+   4. Hero
+   -------------------------------------------------------------------------- */
+
+.ev-hero {
+  border-bottom: 1px solid var(--ev-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ev-paper-deep) 55%, transparent), transparent 70%);
+  padding: clamp(2.5rem, 6vw, 5rem) 0 clamp(2rem, 4vw, 3.5rem);
+}
+
+.ev-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: center;
+}
+
+.ev-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.ev-hero-eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ev-border-strong), transparent);
+}
+
+.ev-hero h1 {
+  font-family: var(--ev-display);
+  font-weight: 700;
+  font-size: clamp(2.35rem, 5.2vw, 3.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.005em;
+  margin: 0 0 1rem;
+}
+.ev-hero h1 .ev-hero-turn { display: block; color: var(--ev-rust); }
+
+.ev-hero-lede {
+  font-size: 1.1rem;
+  color: var(--ev-ink-soft);
+  max-width: 34rem;
+  margin: 0 0 1.75rem;
+}
+
+.ev-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+.ev-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 1.15rem;
+  border: 1px solid var(--ev-border-strong);
+  border-radius: 2px;
+  font-family: var(--ev-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ev-ink);
+  background: transparent;
+  box-shadow: 3px 3px 0 var(--ev-shadow);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.ev-btn:hover { color: var(--ev-ink); transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ev-shadow); }
+.ev-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ev-shadow); }
+.ev-btn-primary { background: var(--ev-ink); color: var(--ev-paper); border-color: var(--ev-ink); }
+.ev-btn-primary:hover { color: var(--ev-paper); }
+.ev-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+.ev-hero-plate { position: relative; }
+.ev-hero-plate img { width: 100%; height: auto; display: block; mix-blend-mode: multiply; }
+:root[data-theme="dark"] .ev-hero-plate img { mix-blend-mode: normal; opacity: 0.92; filter: invert(0.9) hue-rotate(175deg) saturate(0.72) brightness(1.05); }
+
+.ev-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+  margin-top: 2.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ev-border);
+}
+.ev-hero-stats div strong {
+  display: block;
+  font-family: var(--ev-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* --------------------------------------------------------------------------
+   5. Documentation shell
+   -------------------------------------------------------------------------- */
+
+.ev-shell {
+  display: grid;
+  grid-template-columns: var(--ev-rail) minmax(0, 1fr) var(--ev-toc);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  max-width: 96rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.ev-rail { position: sticky; top: calc(var(--ev-header) + 1.5rem); align-self: start; max-height: calc(100vh - var(--ev-header) - 3rem); overflow-y: auto; }
+.ev-rail::-webkit-scrollbar { width: 6px; }
+.ev-rail::-webkit-scrollbar-thumb { background: var(--ev-border); border-radius: 3px; }
+
+.ev-rail-title { margin-bottom: 1rem; padding-bottom: 0.65rem; border-bottom: 1px solid var(--ev-border); }
+
+.ev-index { list-style: none; margin: 0; padding: 0; }
+.ev-index > li { margin-bottom: 0.1rem; }
+.ev-index a {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem 0.3rem 0;
+  color: var(--ev-ink-soft);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  padding-left: 0.7rem;
+  font-size: 0.95rem;
+}
+.ev-index a .ev-numeral {
+  font-family: var(--ev-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  color: var(--ev-ink-muted);
+}
+.ev-index a:hover { color: var(--ev-ink); background: color-mix(in srgb, var(--ev-sepia) 8%, transparent); }
+.ev-index a[aria-current="true"] {
+  color: var(--ev-ink);
+  border-left-color: var(--ev-rust);
+  background: color-mix(in srgb, var(--ev-sepia) 12%, transparent);
+}
+.ev-index a[aria-current="true"] .ev-numeral { color: var(--ev-rust); }
+.ev-index ul { list-style: none; margin: 0 0 0.35rem; padding: 0 0 0 3.3rem; }
+.ev-index ul a { display: block; padding: 0.16rem 0 0.16rem 0.5rem; font-size: 0.875rem; border-left: 1px solid var(--ev-border); }
+
+/* --- right-hand table of contents --- */
+.ev-toc {
+  position: sticky;
+  top: calc(var(--ev-header) + 1.5rem);
+  align-self: start;
+  font-size: 0.875rem;
+  max-height: calc(100vh - var(--ev-header) - 6rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ev-toc::-webkit-scrollbar { width: 6px; }
+.ev-toc::-webkit-scrollbar-thumb { background: var(--ev-border); border-radius: 3px; }
+.ev-toc ol { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+.ev-toc a {
+  display: block;
+  padding: 0.24rem 0 0.24rem 0.75rem;
+  border-left: 1px solid var(--ev-border);
+  color: var(--ev-ink-muted);
+  text-decoration: none;
+}
+.ev-toc a:hover { color: var(--ev-ink); }
+.ev-toc a[aria-current="true"] { color: var(--ev-ink); border-left-color: var(--ev-rust); }
+
+/* --------------------------------------------------------------------------
+   6. Article
+   -------------------------------------------------------------------------- */
+
+.ev-article { max-width: var(--ev-measure); min-width: 0; }
+
+.ev-section { padding-top: 1rem; margin-bottom: 3.5rem; }
+.ev-section > h2 {
+  font-family: var(--ev-display);
+  font-weight: 700;
+  font-size: clamp(1.85rem, 3.4vw, 2.4rem);
+  line-height: 1.15;
+  margin: 0.2rem 0 0.35rem;
+}
+.ev-section-head { margin-bottom: 1.5rem; }
+.ev-section-head .ev-numeral-lg {
+  font-family: var(--ev-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.3em;
+  color: var(--ev-rust);
+}
+.ev-section-summary { color: var(--ev-ink-soft); font-size: 1.05rem; margin: 0; }
+
+.ev-article h3 {
+  font-family: var(--ev-display);
+  font-weight: 700;
+  font-size: 1.45rem;
+  margin: 2.25rem 0 0.6rem;
+}
+.ev-article h4 {
+  font-family: var(--ev-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ev-ink-muted);
+  margin: 1.75rem 0 0.5rem;
+}
+.ev-article p { margin: 0 0 1rem; }
+.ev-article ul, .ev-article ol { margin: 0 0 1.15rem; padding-left: 1.3rem; }
+.ev-article li { margin-bottom: 0.4rem; }
+.ev-article li::marker { color: var(--ev-sepia); }
+
+/* An anchor link that only shows when you are near the heading. */
+.ev-anchor {
+  margin-left: 0.4rem;
+  font-family: var(--ev-mono);
+  font-size: 0.7em;
+  color: var(--ev-ink-muted);
+  opacity: 0;
+  text-decoration: none;
+}
+h2:hover .ev-anchor, h3:hover .ev-anchor, .ev-anchor:focus-visible { opacity: 1; }
+
+/* --- divider --- */
+.ev-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 3.25rem 0;
+  color: var(--ev-ink-muted);
+}
+.ev-divider::before, .ev-divider::after { content: ""; flex: 1; height: 1px; background: var(--ev-border); }
+.ev-divider span { font-size: 0.7rem; letter-spacing: 0.3em; }
+
+/* --------------------------------------------------------------------------
+   7. Code
+   -------------------------------------------------------------------------- */
+
+.ev-code { margin: 1.35rem 0; box-shadow: 4px 5px 0 var(--ev-shadow); border: 1px solid var(--ev-border-strong); border-radius: 3px; overflow: hidden; }
+.ev-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--ev-code-chrome);
+  border-bottom: 1px solid rgba(233, 223, 200, 0.14);
+  color: color-mix(in srgb, var(--ev-code-text) 72%, transparent);
+  font-family: var(--ev-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ev-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid rgba(233, 223, 200, 0.2);
+  border-radius: 2px;
+  color: inherit;
+  font: inherit;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+}
+.ev-copy:hover { color: var(--ev-code-text); border-color: rgba(233, 223, 200, 0.45); }
+.ev-copy svg { width: 12px; height: 12px; fill: currentColor; }
+.ev-copy[data-copied="true"] { color: #a9c08b; border-color: #a9c08b; }
+
+.ev-code pre { margin: 0; padding: 1rem 1.1rem; background: var(--ev-code-bg); overflow-x: auto; }
+.ev-code pre code {
+  font-family: var(--ev-mono);
+  font-size: 0.845rem;
+  line-height: 1.65;
+  color: var(--ev-code-text);
+  background: none;
+  padding: 0;
+  border: 0;
+  white-space: pre;
+}
+
+:not(pre) > code {
+  font-family: var(--ev-mono);
+  font-size: 0.86em;
+  color: var(--ev-ink);
+  background: color-mix(in srgb, var(--ev-sepia) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ev-sepia) 20%, transparent);
+  border-radius: 2px;
+  padding: 0.08em 0.32em;
+  overflow-wrap: break-word;
+}
+
+/* Sepia-toned syntax highlighting so code reads as ink, not as a screenshot. */
+.hljs-comment, .hljs-quote { color: #8c8574; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #d9a05b; }
+.hljs-string, .hljs-attr { color: #a9c08b; }
+.hljs-number, .hljs-literal { color: #c98d6f; }
+.hljs-title, .hljs-section, .hljs-name { color: #e6d5a8; }
+.hljs-meta, .hljs-symbol { color: #9fb0c0; }
+
+/* --------------------------------------------------------------------------
+   8. Callouts
+   -------------------------------------------------------------------------- */
+
+.ev-callout {
+  --ev-callout-accent: var(--ev-sepia);
+  position: relative;
+  margin: 1.5rem 0;
+  padding: 1rem 1.15rem 1rem 1.25rem;
+  background: color-mix(in srgb, var(--ev-paper-raised) 76%, transparent);
+  border: 1px solid var(--ev-border);
+  border-left: 3px solid var(--ev-callout-accent);
+  border-radius: 2px;
+}
+.ev-callout > .ev-label { display: block; color: var(--ev-callout-accent); margin-bottom: 0.35rem; }
+.ev-callout > :last-child { margin-bottom: 0; }
+.ev-callout-cautio { --ev-callout-accent: var(--ev-rust); }
+.ev-callout-experimentum { --ev-callout-accent: #9a7f2e; }
+.ev-callout-principium { --ev-callout-accent: var(--ev-olive); }
+
+/* --------------------------------------------------------------------------
+   9. Figures, plates and cards
+   -------------------------------------------------------------------------- */
+
+.ev-figure { margin: 2rem 0; }
+.ev-figure img { width: 100%; height: auto; display: block; border: 1px solid var(--ev-border); border-radius: 2px; box-shadow: 5px 6px 0 var(--ev-shadow); mix-blend-mode: multiply; }
+:root[data-theme="dark"] .ev-figure img { mix-blend-mode: normal; filter: invert(0.9) hue-rotate(175deg) saturate(0.72) brightness(1.05); }
+.ev-figure figcaption { margin-top: 0.7rem; font-size: 0.875rem; color: var(--ev-ink-muted); display: flex; gap: 0.6rem; }
+.ev-figure figcaption .ev-label { flex: none; color: var(--ev-rust); }
+
+.ev-plates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin: 1.75rem 0; }
+@media (max-width: 560px) { .ev-plates { grid-template-columns: minmax(0, 1fr); } }
+.ev-plate {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ev-border);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ev-paper-raised) 60%, transparent);
+  box-shadow: 4px 5px 0 var(--ev-shadow);
+  overflow: hidden;
+}
+.ev-plate img { width: 100%; height: auto; display: block; mix-blend-mode: multiply; }
+:root[data-theme="dark"] .ev-plate img { mix-blend-mode: normal; filter: invert(0.9) hue-rotate(175deg) saturate(0.72) brightness(1.05); }
+.ev-plate-body { padding: 0.9rem 1rem 1.1rem; border-top: 1px solid var(--ev-border); }
+.ev-plate-body h4 { margin: 0.25rem 0 0.4rem; font-family: var(--ev-display); font-size: 1.15rem; letter-spacing: 0; text-transform: none; color: var(--ev-ink); }
+.ev-plate-body p { margin: 0; font-size: 0.925rem; color: var(--ev-ink-soft); }
+
+/* --------------------------------------------------------------------------
+   10. Tables
+   -------------------------------------------------------------------------- */
+
+.ev-table-wrap { overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--ev-border); border-radius: 2px; }
+.ev-table { width: 100%; border-collapse: collapse; font-size: 0.925rem; margin: 0; }
+.ev-table th, .ev-table td { padding: 0.6rem 0.85rem; text-align: left; border-bottom: 1px solid var(--ev-border); vertical-align: top; }
+.ev-table thead th {
+  font-family: var(--ev-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ev-ink-muted);
+  background: color-mix(in srgb, var(--ev-sepia) 11%, transparent);
+  border-bottom-color: var(--ev-border-strong);
+}
+.ev-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ev-sepia) 5%, transparent); }
+.ev-table tbody tr:last-child td { border-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   11. Marginalia
+   -------------------------------------------------------------------------- */
+
+/* Decorative only. Nothing a reader needs may live here alone. */
+.ev-margin {
+  float: right;
+  clear: right;
+  width: 11rem;
+  margin: 0.4rem -13rem 1rem 1.5rem;
+  font-family: var(--ev-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ev-ink-muted);
+  border-top: 1px solid var(--ev-border);
+  padding-top: 0.5rem;
+}
+@media (max-width: 1500px) { .ev-margin { display: none; } }
+
+/* --------------------------------------------------------------------------
+   12. Footer and utilities
+   -------------------------------------------------------------------------- */
+
+.ev-footer { border-top: 1px solid var(--ev-border); padding: 3rem 1.5rem 3.5rem; text-align: center; background: color-mix(in srgb, var(--ev-paper-deep) 45%, transparent); }
+.ev-footer-mark { display: flex; align-items: center; justify-content: center; gap: 1rem; color: var(--ev-ink-muted); margin-bottom: 1.5rem; }
+.ev-footer-mark::before, .ev-footer-mark::after { content: ""; width: min(12rem, 22vw); height: 1px; background: var(--ev-border); }
+.ev-footer h2 { font-family: var(--ev-display); font-size: 1.6rem; letter-spacing: 0.18em; margin: 0 0 0.4rem; }
+.ev-footer p { color: var(--ev-ink-soft); margin: 0 0 0.5rem; }
+.ev-footer-links { display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center; margin-top: 1.25rem; }
+
+.ev-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 1020;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  background: var(--ev-paper-raised);
+}
+.ev-top[data-visible="true"] { opacity: 1; pointer-events: auto; }
+
+/* --- search dialog --- */
+.ev-dialog { width: min(38rem, calc(100vw - 2rem)); padding: 0; border: 1px solid var(--ev-border-strong); border-radius: 3px; background: var(--ev-paper-raised); color: var(--ev-ink); box-shadow: 0 18px 60px var(--ev-shadow-strong); }
+.ev-dialog::backdrop { background: rgba(32, 26, 18, 0.45); backdrop-filter: blur(2px); }
+.ev-dialog input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--ev-border);
+  background: transparent;
+  color: inherit;
+  font-family: var(--ev-serif);
+  font-size: 1.05rem;
+}
+.ev-dialog input:focus { outline: none; }
+.ev-results { list-style: none; margin: 0; padding: 0.4rem; max-height: 22rem; overflow-y: auto; }
+.ev-results a { display: block; padding: 0.5rem 0.7rem; border-radius: 2px; color: var(--ev-ink); text-decoration: none; }
+.ev-results a:hover, .ev-results a:focus-visible { background: color-mix(in srgb, var(--ev-sepia) 14%, transparent); }
+.ev-results small { display: block; color: var(--ev-ink-muted); font-size: 0.78rem; }
+.ev-results-empty { padding: 1.25rem; color: var(--ev-ink-muted); text-align: center; }
+
+/* --------------------------------------------------------------------------
+   13. Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1200px) {
+  .ev-shell { grid-template-columns: var(--ev-rail) minmax(0, 1fr); }
+  .ev-toc { display: none; }
+}
+
+@media (max-width: 991.98px) {
+  .ev-shell { grid-template-columns: minmax(0, 1fr); padding-top: 1.75rem; }
+  .ev-rail { display: none; }
+  .ev-nav-links { display: none; }
+  .ev-hero-grid { grid-template-columns: minmax(0, 1fr); }
+  .ev-hero-plate { order: -1; }
+  .ev-search-btn { min-width: auto; }
+  .ev-search-btn span, .ev-search-btn kbd { display: none; }
+}
+
+@media (min-width: 992px) { .ev-nav-toggle { display: none; } }
+
+/* Offcanvas index on small screens. */
+.ev-offcanvas { background: var(--ev-paper); color: var(--ev-ink); border-right: 1px solid var(--ev-border); }
+.ev-offcanvas .offcanvas-header { border-bottom: 1px solid var(--ev-border); }
+.ev-offcanvas .btn-close { filter: none; }
+:root[data-theme="dark"] .ev-offcanvas .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
+
+@media (max-width: 575.98px) {
+  body { font-size: 0.98rem; }
+  .ev-shell { padding-left: 1rem; padding-right: 1rem; }
+  .ev-code pre code { font-size: 0.79rem; }
+  .ev-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* --------------------------------------------------------------------------
+   14. Motion and print
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  .ev-nav, .ev-rail, .ev-toc, .ev-top, .ev-copy, .ev-actions { display: none !important; }
+  .ev-shell { grid-template-columns: minmax(0, 1fr); }
+  body::before { display: none; }
+  .ev-code pre { background: #fff; color: #000; border: 1px solid #999; }
+  .ev-code pre code { color: #000; }
+}

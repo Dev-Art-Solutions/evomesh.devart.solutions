@@ -1,201 +1,1094 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, shrink-to-fit=no">
-  <link href="assets/images/favicon.png" rel="icon" type="image/png">
-  <title>EvoMesh — local-first multi-agent environment</title>
-  <meta name="description" content="EvoMesh documentation: persistent agents, local models, shared skills, filesystem grants, messaging, and safe generational evolution.">
-  <meta name="author" content="Dev-Art-Solutions">
-  <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
-  <link rel="stylesheet" href="assets/vendor/font-awesome/css/all.min.css">
-  <link rel="stylesheet" href="assets/vendor/highlight.js/styles/github.css">
-  <link rel="stylesheet" href="assets/css/stylesheet.css">
-  <style>
-    a, .idocs-navigation .nav .nav-link.active, .idocs-navigation .nav .nav-link:hover { color: #079fba; }
-    .btn-primary { background: linear-gradient(90deg, #0874d1, #08bca8); border: 0; }
-    .brand-logo { height: 82px; max-width: 340px; object-fit: contain; }
-    .status-card { border-left: 4px solid #51bf37; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EvoMesh — self-evolving multi-agent environment</title>
+<meta name="description" content="EvoMesh is a local-first environment for persistent BDI agents, reusable skills, file-backed memory, controlled mutation, and isolated generational evolution.">
+<meta name="author" content="Dev-Art Solutions">
+<link rel="canonical" href="https://evomesh.devart.solutions/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://evomesh.devart.solutions/">
+<meta property="og:title" content="EvoMesh — the engineer's notebook">
+<meta property="og:description" content="A local-first environment where persistent agents live, deliberate, acquire reusable skills, and evolve in isolated generations.">
+<meta property="og:image" content="https://evomesh.devart.solutions/assets/images/vitruvian-agent.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="EvoMesh — the engineer's notebook">
+<meta name="twitter:description" content="Machines were built to obey. EvoMesh is built to evolve.">
+<meta name="twitter:image" content="https://evomesh.devart.solutions/assets/images/vitruvian-agent.png">
+<link rel="icon" href="assets/images/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/source-serif-normal-latin.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/cormorant-garamond-normal-latin.woff2" crossorigin>
+<link rel="stylesheet" href="assets/vendor/bootstrap5/css/bootstrap.min.css">
+<link rel="stylesheet" href="assets/css/fonts.css">
+<link rel="stylesheet" href="assets/css/evomesh-notebook.css">
 </head>
-<body data-spy="scroll" data-target=".idocs-navigation" data-offset="125">
-  <div class="preloader"><div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></div>
-  <div id="main-wrapper">
-    <header id="header" class="sticky-top">
-      <nav class="primary-menu navbar navbar-expand-lg navbar-dropdown-dark">
-        <div class="container-fluid">
-          <button id="sidebarCollapse" class="navbar-toggler d-block d-md-none" type="button"><span></span><span class="w-75"></span><span class="w-50"></span></button>
-          <a class="logo ml-md-3" href="index.html" title="EvoMesh"><img class="brand-logo" src="assets/images/logo.png" alt="EvoMesh"></a>
-          <div class="ml-auto">
-            <a target="_blank" href="https://github.com/Dev-Art-Solutions/EvoMesh">GitHub</a>
-            <a class="ml-4" target="_blank" href="https://devart.solutions">Dev-Art Solutions</a>
-          </div>
+<body>
+<a class="ev-skip" href="#docs">Skip to documentation</a>
+
+<!-- ====================================================== navbar -->
+<header class="ev-nav">
+  <button class="ev-icon-btn ev-nav-toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#notebookIndex" aria-controls="notebookIndex" aria-label="Open the notebook index">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12v1.5H2V3.5Zm0 3.75h12v1.5H2V7.25ZM2 11h12v1.5H2V11Z"/></svg>
+  </button>
+
+  <a class="ev-brand" href="#top">
+    <img src="assets/images/evomesh-mark.webp" width="34" height="34" alt="" aria-hidden="true">
+    <span>
+      <span class="ev-brand-name">EvoMesh</span>
+      <span class="ev-brand-sub">Notebook</span>
+    </span>
+  </a>
+
+  <ul class="ev-nav-links">
+    <li><a href="#overview">Genesis</a></li>
+    <li><a href="#environment">Architecture</a></li>
+    <li><a href="#agents">Agents</a></li>
+    <li><a href="#bdi">Cognition</a></li>
+    <li><a href="#evolution">Evolution</a></li>
+    <li><a href="#console">Reference</a></li>
+  </ul>
+
+  <div class="ev-nav-tools">
+    <button class="ev-icon-btn ev-search-btn" type="button" data-search-open aria-label="Search the documentation">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.74 10.34 15 13.6 13.6 15l-3.26-3.26a6 6 0 1 1 1.4-1.4ZM6.5 11a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"/></svg>
+      <span>Search the documentation</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+    <button class="ev-icon-btn" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to dark drafting desk">
+      <svg viewBox="0 0 16 16" data-theme-icon="light" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 1.5v2.25h0V12.5Zm0-11v2.25V1.5ZM3.5 8H1.25 3.5Zm11.25 0H12.5h2.25ZM4.1 4.1 2.5 2.5l1.6 1.6Zm7.8 7.8 1.6 1.6-1.6-1.6Zm0-7.8 1.6-1.6-1.6 1.6ZM4.1 11.9l-1.6 1.6 1.6-1.6Z"/><path d="M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0Zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13ZM16 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 16 8ZM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8Zm10.66-5.66a.5.5 0 0 1 0 .71l-1.42 1.41a.5.5 0 1 1-.7-.7l1.41-1.42a.5.5 0 0 1 .71 0ZM4.46 11.54a.5.5 0 0 1 0 .7l-1.41 1.42a.5.5 0 0 1-.71-.71l1.42-1.41a.5.5 0 0 1 .7 0Zm9.2 1.41a.5.5 0 0 1-.71.71l-1.41-1.42a.5.5 0 0 1 .7-.7l1.42 1.41ZM4.46 4.46a.5.5 0 0 1-.7 0L2.34 3.05a.5.5 0 1 1 .71-.71l1.41 1.42a.5.5 0 0 1 0 .7Z"/></svg>
+      <svg viewBox="0 0 16 16" data-theme-icon="dark" hidden aria-hidden="true"><path d="M6 .28a.77.77 0 0 1 .07.83A7.03 7.03 0 0 0 12.9 11.6a.77.77 0 0 1 .83.07.73.73 0 0 1 .18.87A7.5 7.5 0 1 1 5.13.1a.73.73 0 0 1 .87.18Z"/></svg>
+    </button>
+    <a class="ev-icon-btn" href="https://github.com/Dev-Art-Solutions/EvoMesh" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.89.88 2.35.67.07-.52.28-.88.51-1.08-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 8 0Z"/></svg>
+      <span class="d-none d-sm-inline">GitHub</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====================================================== hero -->
+<div id="top"></div>
+<section class="ev-hero">
+  <div class="container-fluid" style="max-width:96rem;">
+    <div class="ev-hero-grid">
+      <div>
+        <div class="ev-hero-eyebrow"><span class="ev-label">EvoMesh · Engineering notebook</span></div>
+        <h1>Machines were built to obey.<span class="ev-hero-turn">EvoMesh is built to evolve.</span></h1>
+        <p class="ev-hero-lede">
+          A local-first environment where persistent agents live, deliberate over their own
+          beliefs and intentions, acquire reusable skills, and evolve in isolated generations —
+          on your machine, against your models, under your review.
+        </p>
+        <div class="ev-actions">
+          <a class="ev-btn ev-btn-primary" href="#quick-start">Quick start</a>
+          <a class="ev-btn" href="#environment">Architecture</a>
+          <a class="ev-btn" href="https://github.com/Dev-Art-Solutions/EvoMesh" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.89.88 2.35.67.07-.52.28-.88.51-1.08-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 8 0Z"/></svg>
+            Repository
+          </a>
         </div>
-      </nav>
-    </header>
-    <div id="content" role="main">
-      <div class="idocs-navigation bg-dark docs-navigation-dark">
-        <ul class="nav flex-column">
-          <li class="nav-item"><a class="nav-link active" href="#overview">Overview</a>
-            <ul class="nav flex-column">
-              <li class="nav-item"><a class="nav-link" href="#principles">Core principles</a></li>
-              <li class="nav-item"><a class="nav-link" href="#architecture">Architecture</a></li>
-            </ul>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="#quick-start">Quick Start</a></li>
-          <li class="nav-item"><a class="nav-link" href="#environment">Environment</a></li>
-          <li class="nav-item"><a class="nav-link" href="#agents">Agents</a>
-            <ul class="nav flex-column">
-              <li class="nav-item"><a class="nav-link" href="#bdi">BDI mind</a></li>
-              <li class="nav-item"><a class="nav-link" href="#architect">Agent Architect</a></li>
-            </ul>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="#skills">Skills</a></li>
-          <li class="nav-item"><a class="nav-link" href="#permissions">Permissions</a></li>
-          <li class="nav-item"><a class="nav-link" href="#models">Local Models</a></li>
-          <li class="nav-item"><a class="nav-link" href="#evolution">Evolution</a></li>
-          <li class="nav-item"><a class="nav-link" href="#configuration">Configuration</a></li>
-          <li class="nav-item"><a class="nav-link" href="#console">CLI / Console</a></li>
-          <li class="nav-item"><a class="nav-link" href="#status">Project Status</a></li>
-          <li class="nav-item"><a class="nav-link" href="#roadmap">Roadmap</a></li>
-          <li class="nav-item"><a class="nav-link" href="#built-with">Built with</a></li>
-          <li class="nav-item"><a class="nav-link" href="#license">License</a></li>
-        </ul>
+        <div class="ev-hero-stats">
+          <div><strong>Local</strong><span class="ev-label">No cloud account</span></div>
+          <div><strong>BDI</strong><span class="ev-label">Beliefs · desires · intentions</span></div>
+          <div><strong>Generational</strong><span class="ev-label">Validate before promote</span></div>
+        </div>
       </div>
-      <div class="idocs-content"><div class="container">
-        <section id="overview">
-          <h1>EvoMesh</h1>
-          <p class="lead">A local-first environment where persistent agents live, communicate, acquire reusable skills, and evolve in isolated generations.</p>
-          <p>EvoMesh is not a cloud service and an agent is not merely a prompt. The environment owns lifecycle, messaging, state, permissions, model access, skills, health, and evolutionary history. The v0.1 foundation runs on a local machine with SQLite and local model endpoints.</p>
-          <div class="alert alert-warning"><strong>Experimental software.</strong> EvoMesh application permissions are not an OS security sandbox. Review candidate mutations before promotion.</div>
-          <h3 id="principles">Core principles</h3>
+      <figure class="ev-hero-plate m-0" data-draw>
+        <picture>
+          <source srcset="assets/images/vitruvian-agent.webp" type="image/webp">
+          <img src="assets/images/vitruvian-agent.png" width="1400" height="788"
+               alt="Engineering plate of an EvoMesh agent: a central core ringed by six labelled nodes — beliefs, goals, intentions, memory, skills and permissions — joined by construction lines.">
+        </picture>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== shell -->
+<div class="ev-shell" id="docs">
+
+  <!-- -------------------------------------------------- index -->
+  <aside class="ev-rail" aria-label="Notebook index">
+    <div class="ev-rail-title">
+      <span class="ev-label">Contents</span>
+    </div>
+    <nav data-index>
+      <ul class="ev-index">
+        <li><a href="#overview"><span class="ev-numeral">I</span><span>Genesis</span></a>
           <ul>
-            <li><strong>Local first:</strong> startup requires no OpenAI, Anthropic, Gemini, or other cloud account.</li>
-            <li><strong>The environment is the system:</strong> agents use environment messaging and services rather than private addresses.</li>
-            <li><strong>Structured minds:</strong> beliefs, goals, intentions, skills, and permissions are persisted data.</li>
-            <li><strong>Generational evolution:</strong> mutations happen in candidate workspaces, never in the active source tree.</li>
+            <li><a href="#principles">Core principles</a></li>
+            <li><a href="#architecture">Architecture</a></li>
           </ul>
-          <h3 id="architecture">Architecture</h3>
-          <pre><code class="text">Human ──▶ Channel ──▶ EvoMesh Environment
+        </li>
+        <li><a href="#quick-start"><span class="ev-numeral">II</span><span>Quick start</span></a></li>
+        <li><a href="#environment"><span class="ev-numeral">III</span><span>The environment</span></a></li>
+        <li><a href="#agents"><span class="ev-numeral">IV</span><span>Agents</span></a>
+          <ul>
+            <li><a href="#lifecycle">Status and phase</a></li>
+            <li><a href="#architect">Agent Architect</a></li>
+          </ul>
+        </li>
+        <li><a href="#bdi"><span class="ev-numeral">V</span><span>Cognition</span></a>
+          <ul>
+            <li><a href="#beliefs">Beliefs</a></li>
+            <li><a href="#desires">Desires</a></li>
+            <li><a href="#intentions">Intentions</a></li>
+            <li><a href="#plans">Plans</a></li>
+          </ul>
+        </li>
+        <li><a href="#memory"><span class="ev-numeral">VI</span><span>Memory</span></a></li>
+        <li><a href="#skills"><span class="ev-numeral">VII</span><span>Skills</span></a></li>
+        <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
+        <li><a href="#models"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
+        <li><a href="#evolution"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
+        <li><a href="#configuration"><span class="ev-numeral">XI</span><span>Configuration</span></a></li>
+        <li><a href="#console"><span class="ev-numeral">XII</span><span>Console</span></a></li>
+        <li><a href="#philosophy"><span class="ev-numeral">XIII</span><span>Philosophy</span></a></li>
+        <li><a href="#status"><span class="ev-numeral">XIV</span><span>Project status</span></a></li>
+        <li><a href="#roadmap"><span class="ev-numeral">XV</span><span>Roadmap</span></a></li>
+        <li><a href="#license"><span class="ev-numeral">XVI</span><span>License</span></a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- -------------------------------------------------- article -->
+  <main class="ev-article" data-article>
+
+    <!-- ============ I. GENESIS ============ -->
+    <section class="ev-section" id="overview" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">I</span>
+        <h2>Genesis</h2>
+        <p class="ev-section-summary">What EvoMesh is, and what it refuses to be.</p>
+      </header>
+
+      <p>
+        EvoMesh is an experimental, open-source multi-agent runtime for local models. It is not a
+        cloud service, and an agent here is not a prompt with a name. The environment owns agent
+        lifecycle, messaging, persistent state, skills, permissions, model access, health, and
+        evolutionary history. Agents talk through the environment rather than through private
+        network endpoints.
+      </p>
+      <p>
+        Most agent frameworks treat an agent as a function call wrapped around an API. EvoMesh
+        treats it as a resident: something with a mind that persists between runs, goals it
+        returns to, a memory written to disk you can read with any text editor, and a generational
+        path for improving the runtime it lives in.
+      </p>
+
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>
+          EvoMesh executes local model output and is designed to modify candidate code. Treat it as
+          experimental. Its filesystem policies are application-level controls, not a hardened
+          operating-system sandbox. Review candidates before promotion and use least-privilege grants.
+        </p>
+      </aside>
+
+      <h3 id="principles">Core principles</h3>
+      <ul>
+        <li><strong>Local first.</strong> Startup requires no OpenAI, Anthropic, or Gemini account. Your models, your machine, your data.</li>
+        <li><strong>The environment is the system.</strong> Agents use environment-mediated messaging and services rather than addressing each other directly.</li>
+        <li><strong>Structured minds.</strong> Beliefs, desires, intentions, skills, and permissions are persisted, inspectable data — not a large hidden system prompt.</li>
+        <li><strong>Generational evolution.</strong> Mutations happen in isolated candidate workspaces and never in the active source tree.</li>
+        <li><strong>No mutation without validation.</strong> A candidate earns promotion; it is never granted it.</li>
+      </ul>
+
+      <h3 id="architecture">Architecture</h3>
+      <p>
+        The environment is explicit application state, not a global singleton. SQLite access sits
+        behind a repository. Model and channel contracts are replaceable. Generation supervisor
+        metadata deliberately lives outside the candidate workspaces it describes.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Schema</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">Human ──▶ Channel ──▶ EvoMesh Environment
                          ├─ Agent registry and lifecycle
                          ├─ Async message bus and mailboxes
                          ├─ SQLite persistence
+                         ├─ Workspace ──▶ memory.md / context.md
                          ├─ Skill registry ──▶ filesystem policy
-                         ├─ local model providers
-                         └─ candidate workspace ──▶ validation
+                         ├─ Local model providers
+                         └─ Candidate workspace ──▶ validation
 
-External supervisor metadata: ACTIVE ◀──▶ LAST-KNOWN-GOOD
-                                      └──▶ CANDIDATE</code></pre>
-        </section>
+Every agent runs two loops:
 
-        <hr><section id="quick-start">
-          <h2>Quick Start</h2>
-          <p>Install Python 3.13+, Git, <a href="https://docs.astral.sh/uv/" target="_blank">uv</a>, and optionally Ollama.</p>
-          <pre><code class="bash">git clone https://github.com/Dev-Art-Solutions/EvoMesh.git
+  mailbox loop   inbound message ──▶ budgeted prompt ──▶ reply
+  cycle loop     perceive ──▶ revise beliefs ──▶ reconsider ──▶ execute one plan step
+
+Supervisor metadata: ACTIVE ◀──▶ LAST-KNOWN-GOOD ──▶ CANDIDATE</code></pre>
+      </div>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ II. QUICK START ============ -->
+    <section class="ev-section" id="quick-start" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">II</span>
+        <h2>Quick start</h2>
+        <p class="ev-section-summary">From clone to a mesh that is already thinking.</p>
+      </header>
+
+      <p>Install Python 3.13+, Git, <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener">uv</a>, and optionally Ollama.</p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-bash">git clone https://github.com/Dev-Art-Solutions/EvoMesh.git
 cd EvoMesh
 uv sync
 cp evomesh.yaml.example evomesh.yaml
 uv run evomesh</code></pre>
-          <p>On PowerShell, replace <code>cp</code> with <code>Copy-Item</code>. The host still reaches <code>READY</code> when the model endpoint is unavailable and explains what must be fixed; inference waits for a healthy provider.</p>
-          <h4>Windows Control Center</h4>
-          <p>On Windows, double-click <code>start-evomesh.bat</code> to synchronize the environment and open the WinForms Control Center. It provides Start/Stop controls, chat and slash commands, Agent Architect, per-agent model management, and a settings editor. Use <code>start-evomesh-console.bat</code> for direct terminal access.</p>
-        </section>
+      </div>
 
-        <hr><section id="environment">
-          <h2>Environment</h2>
-          <p>The explicit <code>Environment</code> service coordinates registry, lifecycle, bus, persistence, skills, grants, providers, and health. It boots the four system agents—Agent Architect, Guardian, Evaluator, and Environment Evolver—and restores user agents from SQLite.</p>
-          <h4>Messaging and persistence</h4>
-          <p>Every agent owns a mailbox. Direct and broadcast messages carry conversation and correlation IDs and are saved before delivery. SQLite migrations create durable records for agents, messages, skills, assignments, grants, environment state, and mutation history.</p>
-        </section>
+      <p>
+        On PowerShell replace <code>cp</code> with <code>Copy-Item</code>. The mesh still reaches
+        <code>READY</code> when the model endpoint is unavailable and reports what must be fixed;
+        inference waits for a healthy provider, and the deterministic system agents keep reasoning
+        without one.
+      </p>
 
-        <hr><section id="agents">
-          <h2>Agents</h2>
-          <p>An agent definition contains stable identity, type, generation and parentage, purpose, provider/model, mind state, skills, permissions, memory behavior, lifecycle state, and timestamps. Runtime loops observe mailbox messages, call the configured local model, and return correlated responses through the bus.</p>
-          <h3 id="bdi">BDI-inspired mind</h3>
-          <p>Beliefs, goals, and intentions provide the initial cognitive shape. They are structured state, not a large hidden system prompt, and the architecture allows a later cognition strategy to replace BDI.</p>
-          <h3 id="architect">Agent Architect</h3>
-          <p>Select Architect, describe the need, then answer its questions about name, purpose, constraints, filesystem access, skills, and provider/model. It builds a candidate definition. <code>/confirm</code> activates, starts, persists, and selects it; <code>/cancel</code> discards it.</p>
-          <pre><code class="text">evomesh&gt; /chat architect
-evomesh&gt; Create a research agent
-architect&gt; What should the new agent be called?</code></pre>
-        </section>
+      <aside class="ev-callout">
+        <span class="ev-label">Nota</span>
+        <p>
+          The four system agents boot with a standing goal each and begin cycling immediately. Run
+          <code>/agents</code> a minute after startup and you should see cycle counters climbing.
+        </p>
+      </aside>
 
-        <hr><section id="skills">
-          <h2>Skills</h2>
-          <p>The shared registry supports discovery, attachment, and invocation. Initial built-ins are Filesystem Read/Write, Markdown Read/Write, and Git Status/Diff. Missing capabilities return a structured missing-skill error. Automatic skill generation is planned.</p>
-        </section>
+      <h4>Windows Control Center</h4>
+      <p>
+        On Windows, double-click <code>start-evomesh.bat</code> to synchronize the environment and open
+        the WinForms Control Center: start and stop the mesh, attach to an already-running local mesh
+        over the localhost control channel, chat and issue slash commands, run Agent Architect, assign a
+        different provider and model per agent, and edit <code>evomesh.yaml</code> while stopped. Use
+        <code>start-evomesh-console.bat</code> for the terminal.
+      </p>
+    </section>
 
-        <hr><section id="permissions">
-          <h2>Filesystem grants</h2>
-          <p>Having a file skill does not grant path access. EvoMesh resolves paths before comparison, checks the requested operation, persists grants, and raises a structured denial when no matching ancestor grant exists.</p>
-          <pre><code class="text">/grant Researcher D:/Papers read
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ III. ENVIRONMENT ============ -->
+    <section class="ev-section" id="environment" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">III</span>
+        <h2>The environment</h2>
+        <p class="ev-section-summary">The world the agents are residents of.</p>
+      </header>
+
+      <p>
+        The explicit <code>Environment</code> service coordinates registry, lifecycle, message bus,
+        persistence, skills, grants, providers, workspace, and health. It boots the four system
+        agents — Agent Architect, Guardian, Evaluator, and Environment Evolver — and restores user
+        agents from SQLite with their minds intact.
+      </p>
+
+      <figure class="ev-figure" data-draw>
+        <picture>
+          <source srcset="assets/images/system-anatomy.webp" type="image/webp">
+          <img src="assets/images/system-anatomy.png" width="1400" height="788" loading="lazy"
+               alt="Plate of the EvoMesh anatomy: a human passes through a channel into the environment, which fans out to agent registry, message bus, persistence, skills, model providers and candidate workspace.">
+        </picture>
+        <figcaption><span class="ev-label">Fig. III·I</span> The environment mediates every relationship in the mesh.</figcaption>
+      </figure>
+
+      <h4>Messaging and persistence</h4>
+      <p>
+        Every agent owns an asynchronous mailbox. Direct and broadcast messages carry conversation
+        and correlation identifiers and are persisted before delivery. SQLite migrations create durable
+        records for agents, messages, skills, assignments, grants, environment state, and mutation
+        history. Agent business logic never calls another agent object directly.
+      </p>
+
+      <h4>The shared world</h4>
+      <p>
+        The environment regenerates <code>workspace/context.md</code>: the roster, each agent's phase
+        and current goal, and the evolution stage. Every agent can read it, which is how an agent knows
+        what the rest of the mesh is doing without anyone broadcasting it.
+      </p>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ IV. AGENTS ============ -->
+    <section class="ev-section" id="agents" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">IV</span>
+        <h2>Agents</h2>
+        <p class="ev-section-summary">Residents with a lifecycle, a mind, and a job.</p>
+      </header>
+
+      <p class="ev-margin">Agens: qui agit. The one who acts.</p>
+
+      <p>
+        An agent definition contains stable identity, type, generation and parentage, purpose,
+        provider and model, mind state, skills, permissions, memory behaviour, autonomy, cycle
+        interval, lifecycle status, and timestamps. At runtime it holds two loops: a mailbox loop that
+        answers messages, and a cycle loop that advances its own goals whether or not anyone is
+        watching. Both share a lock, because a small local model answering two requests for the same
+        agent at once produces an answer made of half a deliberation.
+      </p>
+
+      <div class="ev-plates">
+        <article class="ev-plate">
+          <picture><source srcset="assets/images/agent-architect.webp" type="image/webp">
+            <img src="assets/images/agent-architect.png" width="560" height="543" loading="lazy" alt="Plate of a drafting compass inside construction circles."></picture>
+          <div class="ev-plate-body">
+            <span class="ev-label">Figura I</span>
+            <h4>Agent Architect</h4>
+            <p>Turns one sentence from a human into a complete, working agent definition. Reactive: it never invents agents nobody asked for.</p>
+          </div>
+        </article>
+        <article class="ev-plate">
+          <picture><source srcset="assets/images/agent-guardian.webp" type="image/webp">
+            <img src="assets/images/agent-guardian.png" width="560" height="543" loading="lazy" alt="Plate of a shield set within an arched gate."></picture>
+          <div class="ev-plate-body">
+            <span class="ev-label">Figura II</span>
+            <h4>Guardian</h4>
+            <p>Perceives provider health and every agent's phase, and wants degradation investigated. Deterministic: it needs no model at all.</p>
+          </div>
+        </article>
+        <article class="ev-plate">
+          <picture><source srcset="assets/images/agent-evaluator.webp" type="image/webp">
+            <img src="assets/images/agent-evaluator.png" width="560" height="543" loading="lazy" alt="Plate of a balance scale on a geometric grid."></picture>
+          <div class="ev-plate-body">
+            <span class="ev-label">Figura III</span>
+            <h4>Evaluator</h4>
+            <p>Reads the newest candidate's validation record and reports the verdict — including that a candidate has not been validated at all.</p>
+          </div>
+        </article>
+        <article class="ev-plate">
+          <picture><source srcset="assets/images/agent-evolver.webp" type="image/webp">
+            <img src="assets/images/agent-evolver.png" width="560" height="543" loading="lazy" alt="Plate of interlocking gears branching from a central wheel."></picture>
+          <div class="ev-plate-body">
+            <span class="ev-label">Figura IV</span>
+            <h4>Environment Evolver</h4>
+            <p>Opens a candidate generation, proposes one mutation, validates it, and hands it to you. One stage per cycle, one candidate at a time.</p>
+          </div>
+        </article>
+      </div>
+
+      <h3 id="lifecycle">Status and phase</h3>
+      <p>
+        Two different questions deserve two different fields, and conflating them is how a roster starts
+        lying to you.
+      </p>
+
+      <div class="ev-table-wrap">
+        <table class="ev-table">
+          <thead><tr><th>Field</th><th>Question it answers</th><th>Values</th></tr></thead>
+          <tbody>
+            <tr><td><strong>status</strong></td><td>Should this agent be running? Persisted.</td><td><code>candidate</code>, <code>active</code>, <code>stopped</code></td></tr>
+            <tr><td><strong>phase</strong></td><td>What is it doing right now? Rebuilt every boot, never trusted from disk.</td><td><code>offline</code>, <code>starting</code>, <code>idle</code>, <code>thinking</code>, <code>acting</code>, <code>waiting-human</code>, <code>error</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>An agent that cannot start is reported <code>offline</code> <em>with the reason</em>, rather than returning as <code>active</code> with no loop behind the label.</p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/agents</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">Guardian [system] active/idle ollama:qwen3 cycles=4
+    goal: Keep a current picture of mesh health and report anything degraded.
+    last: mesh healthy, provider ready
+
+Environment Evolver [system] active/waiting-human ollama:qwen3 cycles=4
+    goal: Improve EvoMesh by one validated candidate generation at a time.
+    last: generation 2 is waiting for a human to promote or discard it</code></pre>
+      </div>
+
+      <h3 id="architect">Agent Architect</h3>
+      <p>
+        Run <code>/chat architect</code> and describe what you need in one sentence. Architect derives the
+        name, purpose, constraints, filesystem access, skills, and provider/model from that sentence,
+        gives the local model a single optional pass to improve the wording, and shows you a complete
+        draft. It does not interview you. Refine it by saying what to change.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">evomesh&gt; /chat architect
+evomesh&gt; read my markdown notes in D:/notes and write a weekly summary
+
+Draft ready.
+  name:     Note Reader
+  purpose:  read my markdown notes in D:/notes and write a weekly summary
+  model:    ollama:qwen3
+  skills:   Markdown.Read, Filesystem.Write, Filesystem.Read
+  access:   D:/notes
+  first goal: read my markdown notes in D:/notes and write a weekly summary
+
+evomesh&gt; name: Scout
+evomesh&gt; /confirm</code></pre>
+      </div>
+
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Principium</span>
+        <p>
+          This matters most on small models. A six-question interview drifts, and the model has
+          forgotten the beginning by the end — so no agent ever gets created. One pass with
+          deterministic fallbacks always produces a working definition, and the model is only allowed
+          to override a derived value when its answer is plausibly better.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ V. COGNITION ============ -->
+    <section class="ev-section" id="bdi" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">V</span>
+        <h2>Cognition</h2>
+        <p class="ev-section-summary">Beliefs, desires, intentions — the loop, not the vocabulary.</p>
+        <p class="ev-latin">De mente machinae</p>
+      </header>
+
+      <p>
+        Agents run the Rao and Georgeff practical-reasoning interpreter. This is the actual control
+        flow of a cycle, not a set of BDI-shaped fields sitting beside an ordinary prompt loop.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Interpres</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">percepts := perceive()
+B        := brf(B, percepts)      revise beliefs
+D        := options(B, I)         which goals are worth having
+I        := filter(B, D, I)       commit to one, with a plan
+            execute one step of that plan
+            drop I when achieved, or when it became impossible</code></pre>
+      </div>
+
+      <p>
+        Two properties make this BDI rather than a loop with flattering names. An agent that re-decides
+        everything every tick has no intentions, only impulses. An agent that never re-decides is blind
+        to a world that moved. EvoMesh commits, and reconsiders on evidence.
+      </p>
+
+      <h3 id="beliefs">Beliefs</h3>
+      <p>
+        Beliefs are keyed, so a new percept <em>revises</em> the belief it contradicts instead of
+        stacking a near-duplicate beside it. Guardian holds <code>provider.ready</code> and
+        <code>mesh.degraded</code>; the Evolver holds <code>evolution.stage</code>. Beliefs come only
+        from perception — what an agent concludes during a cycle is durable memory, not a percept, and
+        the two are kept apart on purpose.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/beliefs guardian</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">provider.ready: the model provider is ready          (environment)
+mesh.degraded:  all 5 agents are running             (environment)</code></pre>
+      </div>
+
+      <h3 id="desires">Desires</h3>
+      <p>
+        Desires are goals, ranked by priority. A behaviour can generate new ones from what it now
+        believes: when Guardian perceives that an agent stopped, it <em>wants</em> that investigated,
+        and the desire becomes a goal outranking its routine sweep. When the mesh recovers, the
+        investigation is discharged rather than left open forever.
+      </p>
+
+      <h3 id="intentions">Intentions</h3>
+      <p>
+        An intention is a commitment: a chosen plan, executed one step per cycle, across cycles,
+        without re-deciding. It can also be <em>held</em> — a step is not consumed while the agent waits
+        on something external, so a parked agent keeps one commitment instead of completing and
+        re-adopting a plan every cycle it spends waiting.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/intentions evolver</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">[active] plan 'evolve-generation' for: Improve EvoMesh by one validated candidate generation
+    [x] open an isolated candidate generation
+    [x] propose and apply one mutation
+    [ ] validate the candidate
+    [ ] hand the candidate to the human</code></pre>
+      </div>
+
+      <h4>Reconsideration</h4>
+      <p>An agent reconsiders only when something makes its commitment questionable:</p>
+      <ul>
+        <li>the plan ran out;</li>
+        <li>the goal closed;</li>
+        <li>a higher-priority goal appeared;</li>
+        <li>a belief the plan <em>declared it depends on</em> was revised.</li>
+      </ul>
+      <p>
+        That check is pure code and never calls a model. Which beliefs a plan depends on is a deliberate
+        design decision: the Evolver does <strong>not</strong> depend on <code>evolution.stage</code>,
+        because its own plan is what moves that stage — depending on it would make the agent abandon and
+        re-adopt its plan once per cycle. It depends on <code>evolution.awaiting_human</code>, which flips
+        only twice per pass. So <code>/evolution discard</code> is what makes the Evolver drop its held
+        plan and begin a fresh one, of its own accord.
+      </p>
+
+      <h3 id="plans">Plans</h3>
+      <p>
+        Means-ends reasoning is a library lookup first and a model call only as a fallback. Guardian,
+        Evaluator, and the Evolver run entirely from their plan libraries, so the mesh keeps reasoning
+        with no model reachable at all. A generic agent asks the model once to break its goal into two
+        to four steps, then spends the following cycles executing them.
+      </p>
+
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Principium</span>
+        <p>
+          One planning call per goal rather than one per cycle. On a small local model that is the
+          difference between affordable and not. If the model is unreachable, or answers with something
+          that is not a plan, the agent commits to a single-step plan and carries on.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ VI. MEMORY ============ -->
+    <section class="ev-section" id="memory" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">VI</span>
+        <h2>Memory</h2>
+        <p class="ev-section-summary">Two Markdown files per agent, readable by any human.</p>
+      </header>
+
+      <p>Each agent owns two files under <code>workspace/agents/&lt;agent&gt;/</code>:</p>
+      <ul>
+        <li><strong><code>memory.md</code></strong> — durable facts it has learned, appended one line per cycle and compacted into a summary once it outgrows its budget.</li>
+        <li><strong><code>context.md</code></strong> — working context, rewritten every cycle with the current goal, the committed plan, its beliefs, the last outcome, the next step, open goals, and recent inbox.</li>
+      </ul>
+      <p>
+        Both are plain Markdown on purpose. You can read them, edit them, or delete them while the mesh
+        is running, and the agent picks the change up on its next cycle. A mind you cannot inspect is a
+        mind you cannot debug.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>workspace/agents/note-reader/memory.md</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-markdown"># Memory - Note Reader
+
+Purpose: read my markdown notes in D:/notes and write a weekly summary
+
+## Summary
+
+Nothing compacted yet.
+
+## Recent
+- 2026-09-01T01:05Z (reflective) The notes folder contains 12 markdown files.
+- 2026-09-01T01:06Z (reflective) Weekly summaries belong in D:/notes/summaries.</code></pre>
+      </div>
+
+      <h4>Why the budget exists</h4>
+      <p>
+        Every prompt is assembled under a hard character budget, carrying identity, goal, current
+        beliefs, the committed plan, memory, working context, and recent inbox in that order. This is
+        the fix for agents that lost their memory partway through a goal: an oversized prompt is
+        truncated by the model server from the oldest end — which is exactly where memory sits.
+        Budgeting here means the trim is ours, and the newest facts always survive it.
+      </p>
+
+      <aside class="ev-callout">
+        <span class="ev-label">Nota</span>
+        <p>
+          Defaults suit a 4k-token model. Raise <code>runtime.prompt_chars</code> and its companions if
+          your models have a larger context window.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ VII. SKILLS ============ -->
+    <section class="ev-section" id="skills" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">VII</span>
+        <h2>Skills</h2>
+        <p class="ev-section-summary">Capabilities as shared, discoverable objects.</p>
+      </header>
+      <p>
+        The shared registry supports discovery, attachment, and invocation. Built-ins are
+        <code>Filesystem.Read</code>, <code>Filesystem.Write</code>, <code>Markdown.Read</code>,
+        <code>Markdown.Write</code>, <code>Git.Status</code>, and <code>Git.Diff</code>. A missing
+        capability returns a structured missing-skill error rather than a silent failure.
+      </p>
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>A skill never grants path access by itself. Capability and authority are separate on purpose.</p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ VIII. PERMISSIONS ============ -->
+    <section class="ev-section" id="permissions" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">VIII</span>
+        <h2>Filesystem grants</h2>
+        <p class="ev-section-summary">Explicit authority, resolved before it is compared.</p>
+      </header>
+      <p>
+        Paths are resolved before comparison, descendants inherit only the granted operation, and
+        denials are structured exceptions rather than empty results.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">/grant Researcher D:/Papers read
 /grant Researcher D:/Research write
 /revoke Researcher D:/Papers</code></pre>
-          <div class="alert alert-info">These controls constrain EvoMesh skills. They do not claim to contain arbitrary native processes or hostile code at the operating-system level.</div>
-        </section>
+      </div>
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>
+          These controls constrain EvoMesh skills. They do not claim to contain arbitrary native
+          processes or hostile code at the operating-system level.
+        </p>
+      </aside>
+    </section>
 
-        <hr><section id="models">
-          <h2>Local Models</h2>
-          <h4>Ollama</h4><p>The default adapter checks <code>/api/tags</code>, reports whether the configured model is installed, and calls <code>/api/generate</code>.</p>
-          <h4>InferHub</h4><p>InferHub is an optional local/self-hosted provider through its OpenAI-compatible endpoint. EvoMesh does not require it.</p>
-          <h4>OpenAI-compatible local endpoint</h4><p>The generic adapter supports local servers exposing <code>/models</code> and <code>/chat/completions</code>. “OpenAI-compatible” describes the wire format, not a cloud dependency.</p>
-          <h4>One model per agent</h4><p>Every agent persists its own provider and model name, and the runtime passes that model on each inference call. Agents can therefore use different Ollama models concurrently. Change an assignment from the Control Center or with <code>/model "Agent Name" qwen3:14b ollama</code>; only that agent is safely restarted.</p>
-        </section>
+    <div class="ev-divider"><span>◇</span></div>
 
-        <hr><section id="evolution">
-          <h2>Evolution and generations</h2>
-          <p>The Environment Evolver creates a numbered candidate copy that excludes active data, Git internals, virtual environments, and generations. The small external supervisor records active, last-known-good, and candidate metadata atomically.</p>
-          <pre><code class="text">Generation N (ACTIVE)
-  └─ create isolated N+1 (CANDIDATE)
-       ├─ uv sync
-       ├─ ruff
-       ├─ pyright
-       └─ pytest
-            PASS: eligible for human promotion
-            FAIL: active N remains untouched</code></pre>
-          <p>Validation results and mutation objectives are persisted. Human-confirmed promotion and rollback metadata exist; autonomous production promotion is deliberately out of scope for v0.1.</p>
-        </section>
+    <!-- ============ IX. MODELS ============ -->
+    <section class="ev-section" id="models" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">IX</span>
+        <h2>Local intelligence</h2>
+        <p class="ev-section-summary">One model per agent, all of them yours.</p>
+      </header>
 
-        <hr><section id="configuration">
-          <h2>Configuration</h2>
-          <p>Copy <code>evomesh.yaml.example</code> to <code>evomesh.yaml</code>. Configure the environment name, SQLite path, generations path, log level, default provider, endpoint, and model. Keep secrets out of Git.</p>
-          <pre><code class="yaml">models:
+      <h4>Ollama</h4>
+      <p>The default adapter checks <code>/api/tags</code>, reports whether the configured model is installed, and calls <code>/api/generate</code>.</p>
+      <h4>InferHub</h4>
+      <p><a href="https://inferhub.devart.solutions" target="_blank" rel="noopener">InferHub</a> is an optional local or self-hosted provider through its OpenAI-compatible endpoint. EvoMesh does not require it.</p>
+      <h4>OpenAI-compatible local endpoint</h4>
+      <p>The generic adapter supports any local server exposing <code>/models</code> and <code>/chat/completions</code>. “OpenAI-compatible” describes the wire format, not a cloud dependency.</p>
+      <h4>One model per agent</h4>
+      <p>
+        Every agent persists its own provider and model name, and the runtime passes that model on each
+        inference call, so agents can use different Ollama models concurrently. Changing an assignment
+        restarts only the affected agent — and does not disable it.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">/models ollama
+/model "Research Agent" qwen3:14b ollama
+/model "Fast Router" qwen3:4b ollama</code></pre>
+      </div>
+
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimentum</span>
+        <p>
+          Reasoning models emit <code>&lt;think&gt;</code> blocks. EvoMesh strips them before anything is
+          stored or re-prompted; left in place they dominate the next prompt and get written into memory
+          as if they were conclusions.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ X. EVOLUTION ============ -->
+    <section class="ev-section" id="evolution" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">X</span>
+        <h2>Evolution</h2>
+        <p class="ev-section-summary">Controlled mutation and generational promotion.</p>
+        <p class="ev-latin">De mutatione machinae</p>
+      </header>
+
+      <p>
+        The Environment Evolver is a staged pipeline, and one cycle advances exactly one stage. It opens
+        a candidate generation on its first cycle after boot, so evolution actually starts rather than
+        waiting to be asked. One stage per cycle means a tick never becomes a ten-minute validation run,
+        and it never opens a second candidate while one is still waiting for you.
+      </p>
+
+      <figure class="ev-figure" data-draw>
+        <picture>
+          <source srcset="assets/images/evolution-cycle.webp" type="image/webp">
+          <img src="assets/images/evolution-cycle.png" width="1400" height="788" loading="lazy"
+               alt="Plate of the evolution cycle: generation N, candidate mutation, validation, evaluation, decision, then either reject back to generation N or promote forward to generation N plus one.">
+        </picture>
+        <figcaption><span class="ev-label">Fig. X·I</span> Nulla mutatio sine probatione — no mutation without validation.</figcaption>
+      </figure>
+
+      <p>
+        Candidates are copied into isolated generation directories and never overwrite the active tree.
+        Runtime state is deliberately excluded from the copy: shipping the live database and every
+        agent's memory inside a tree that may later be promoted is both a correctness and a privacy
+        problem. The supervisor tracks active, candidate, and last-known-good generations in atomic
+        metadata that lives outside the candidates themselves.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Generatio</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">plan ──▶ propose ──▶ validate ──▶ report ──▶ await-human
+
+  validation runs, in order:
+    uv sync
+    uv run ruff check .
+    uv run pyright
+    uv run pytest
+    uv run python -m evomesh.smoke
+
+  PASS  ──▶ eligible for human promotion
+  FAIL  ──▶ recorded; active generation remains untouched</code></pre>
+      </div>
+
+      <p>
+        A candidate that was never validated is reported as <em>not validated</em> — which is not the
+        same as failed. Promotion stays a human decision, and promoting or discarding releases the
+        pipeline for the next objective.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">/evolution status
+/evolution start "make the console faster"
+/evolution promote 3
+/evolution discard
+/evolution rollback</code></pre>
+      </div>
+
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimentum</span>
+        <p>
+          Set <code>evolution.autonomous: false</code> to park the Evolver, or
+          <code>evolution.auto_validate: false</code> to skip the validation suite. Autonomous
+          production promotion is deliberately out of scope.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ XI. CONFIGURATION ============ -->
+    <section class="ev-section" id="configuration" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XI</span>
+        <h2>Configuration</h2>
+        <p class="ev-section-summary">One file, and what each dial actually does.</p>
+      </header>
+
+      <p>Copy <code>evomesh.yaml.example</code> to <code>evomesh.yaml</code>. Keep secrets out of Git.</p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>evomesh.yaml</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-yaml">workspace_path: workspace
+
+runtime:
+  cycle_seconds: 60        # how often each agent runs one BDI cycle
+  stagger_seconds: 1.5     # delay between agents' first ticks on boot
+  prompt_chars: 6000       # hard budget for the assembled prompt
+  memory_chars: 3000
+  context_chars: 1500
+  inbox_chars: 1000
+  beliefs_chars: 700
+
+evolution:
+  autonomous: true         # the Evolver opens a candidate on its first cycle
+  cycle_seconds: 300
+  auto_validate: true      # run the validation suite on each candidate
+  objective: null          # or set one; otherwise use /evolution start
+
+models:
   default_provider: ollama
   providers:
     ollama:
       base_url: http://127.0.0.1:11434
       model: qwen3</code></pre>
-        </section>
+      </div>
 
-        <hr><section id="console">
-          <h2>CLI / Console</h2>
-          <pre><code class="text">/help              /status             /agents
-/skills            /models ollama      /chat &lt;agent&gt;
-/model ...         /agent start|stop   /confirm
-/grant ...         /revoke ...         /evolution status
-/exit</code></pre>
-          <p>Plain text goes to the selected agent. The console implements a channel contract so future adapters can be added without changing agent logic.</p>
-        </section>
+      <div class="ev-table-wrap">
+        <table class="ev-table">
+          <thead><tr><th>Setting</th><th>Effect</th></tr></thead>
+          <tbody>
+            <tr><td><code>runtime.cycle_seconds</code></td><td>Interval between deliberation cycles for every agent without its own override.</td></tr>
+            <tr><td><code>runtime.stagger_seconds</code></td><td>Spacing of first ticks so a boot does not stampede one model.</td></tr>
+            <tr><td><code>runtime.prompt_chars</code></td><td>Ceiling on the whole assembled prompt. Everything else is trimmed to fit inside it.</td></tr>
+            <tr><td><code>evolution.autonomous</code></td><td>When false the Evolver is visibly parked rather than silently idle.</td></tr>
+            <tr><td><code>evolution.auto_validate</code></td><td>When false a candidate is proposed but never validated, and reported as such.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-        <hr><section id="status">
-          <h2>Project Status</h2>
-          <div class="card status-card"><div class="card-body"><strong>Implemented in v0.1 foundation:</strong> local boot, Windows Control Center and BAT launchers, SQLite migrations, system-agent registry, async messaging, Architect interview and persistence, per-agent model selection, grants, shared built-in skills, model health, isolated candidate creation, validation commands, supervisor metadata, CI, and mock-backed tests.</div></div>
-          <p class="mt-3"><strong>Experimental:</strong> model reasoning behavior, mutation authoring, Git lineage, and promotion workflow. <strong>Not implemented:</strong> hardened OS sandbox, web UI, Telegram, PDF/OCR, distributed runtime, cloud providers, or automatic production promotion.</p>
-        </section>
+    <div class="ev-divider"><span>◇</span></div>
 
-        <hr><section id="roadmap"><h2>Roadmap</h2><p>Next: controlled model-authored patches and structured Git commits; Skill Architect and skill generation; richer memory; web and Telegram channels; benchmarks; stronger process isolation; and policy-driven promotion.</p></section>
-        <hr><section id="built-with"><h2>Built with</h2><p>Python 3.13, asyncio, Pydantic, SQLite/aiosqlite, HTTPX, uv, Ruff, Pyright, pytest, Git, and local models such as Ollama or InferHub.</p></section>
-        <hr><section id="license"><h2>License</h2><p>EvoMesh and this documentation are available under the MIT License.</p></section>
-      </div></div>
-    </div>
-    <footer id="footer" class="section bg-dark footer-text-light"><div class="container text-center"><p>Copyright &copy; 2026 <a href="https://devart.solutions">Dev-Art Solutions</a>. MIT licensed.</p></div></footer>
+    <!-- ============ XII. CONSOLE ============ -->
+    <section class="ev-section" id="console" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XII</span>
+        <h2>Console</h2>
+        <p class="ev-section-summary">The full command surface.</p>
+      </header>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/help</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">/help                         Show this help
+/status                       Environment and provider health
+/agents                       Agents with desired status and live phase
+/skills                       List available skills
+/models [provider]            List models exposed by a provider
+/chat &lt;agent-name&gt;            Select an agent
+/model &lt;agent&gt; &lt;model&gt; [prov] Change one agent's provider/model
+/agent start|stop &lt;agent&gt;     Control an individual agent loop
+/cycle &lt;agent&gt;                Run one deliberation cycle now
+/beliefs &lt;agent&gt;              What the agent currently holds true
+/goals &lt;agent&gt;                Its goals (desires), by priority
+/intentions &lt;agent&gt;           What it committed to, and the plan it is running
+/goal add &lt;agent&gt; "&lt;text&gt;" [priority]
+/goal done|drop &lt;agent&gt; &lt;goal-id&gt;
+/memory &lt;agent&gt;               Show the agent's memory.md
+/context &lt;agent&gt;|world        Show context.md
+/grant &lt;agent&gt; &lt;path&gt; &lt;mode&gt;  Grant read or write access
+/revoke &lt;agent&gt; &lt;path&gt;        Revoke access
+/confirm                      Activate the Architect draft
+/cancel                       Discard the Architect draft
+/evolution status             Show the generation and pipeline state
+/evolution start &lt;objective&gt;  Give the Evolver a new objective
+/evolution promote|discard [n]
+/evolution rollback           Return to the last known good generation
+/exit                         Stop EvoMesh</code></pre>
+      </div>
+
+      <p>
+        Plain text goes to the selected agent. The console implements a channel contract, so further
+        adapters can be added without touching agent logic. The local control channel listens only on
+        <code>127.0.0.1:8765</code>.
+      </p>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ XIII. PHILOSOPHY ============ -->
+    <section class="ev-section" id="philosophy" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XIII</span>
+        <h2>Philosophy</h2>
+        <p class="ev-section-summary">Why the thing is shaped this way.</p>
+        <p class="ev-latin">Machina quae se ipsam mutat</p>
+      </header>
+
+      <p class="ev-margin">Observatio · hypothesis · experimentum · probatio · evolutio</p>
+
+      <h3 id="on-obedience">On obedience and intention</h3>
+      <p>
+        A program that only reacts has no inner life worth modelling. It has inputs and outputs, and
+        whatever appears to be deliberation is a property of the caller, not the called. Most systems
+        marketed as agents are exactly this: a loop somebody else is running, wearing the vocabulary of
+        autonomy.
+      </p>
+      <p>
+        The distinction EvoMesh cares about is old, and it is not really a distinction about software.
+        Wanting something is cheap. Committing to it is expensive, because commitment means you will
+        keep pursuing a plan when a more attractive one appears, and you will stop only for reasons you
+        specified in advance. An agent that re-decides everything at every tick has no intentions, only
+        impulses. An agent that never re-decides is faithful to a world that has moved on. Practical
+        reason lives in the narrow space between those two failures, and so does this runtime.
+      </p>
+
+      <h3 id="on-memory">On memory as a public artifact</h3>
+      <p>
+        We chose to write each agent's mind to Markdown files you can open in any editor. This was not
+        a storage decision. A mind you cannot inspect is a mind you cannot debug, and a system whose
+        reasoning is only ever visible as a token stream invites you to believe things about it that are
+        not true. If an agent claims to know something, you should be able to open a file and find the
+        sentence where it learned that, with a timestamp on it.
+      </p>
+      <p>
+        There is a discipline in the constraint, too. Memory that must fit in a budget forces the
+        question of what is actually worth remembering — which is the same question a good engineering
+        notebook asks of its author.
+      </p>
+
+      <h3 id="on-smallness">On the virtue of small models</h3>
+      <p>
+        It would have been easier to build this against a frontier model and let scale paper over the
+        architecture. Small local models refuse to do that. They forget the beginning of a long
+        interview. They rubber-stamp <code>DONE: yes</code> the first time they read a goal. They answer
+        <code>{"name": "D:/notes"}</code> when asked to name an agent.
+      </p>
+      <p>
+        Every one of those failures turned into a structural fix rather than a longer prompt: derive the
+        agent deterministically and let the model only improve it; require a goal to be worked twice
+        before it can close; validate a model's answer before letting it overwrite something that already
+        works. A system built to stay coherent on a 0.5B model is not a compromise. It is a system whose
+        correctness does not quietly depend on the intelligence of the thing being orchestrated.
+      </p>
+
+      <h3 id="on-evolution">On evolution and the right to be wrong</h3>
+      <p>
+        Self-modifying software is usually presented as either a marvel or a hazard. It is neither. It is
+        an ordinary engineering practice — propose, isolate, validate, review, promote — applied to a
+        system that happens to be proposing the changes itself. The interesting question was never whether
+        a machine can rewrite itself. It is what has to be true before anyone should let it.
+      </p>
+      <p>
+        EvoMesh's answer is procedural. A mutation is made in a workspace that cannot touch the running
+        tree. It is tested by the same suite a human contributor would face. The result is recorded
+        whether it passed or failed, and a candidate that was never tested is never described as one that
+        failed. Promotion is a decision a person makes, and the previous generation stays whole so the
+        decision can be undone. The machine has the right to be wrong; it does not have the right to be
+        wrong in production.
+      </p>
+
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Principium</span>
+        <p>
+          <span class="ev-latin">Ex variatione emergit robusta ordinatio.</span><br>
+          From variation, robust order emerges — but only where something is willing to reject the
+          variations that do not work.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ XIV. STATUS ============ -->
+    <section class="ev-section" id="status" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XIV</span>
+        <h2>Project status</h2>
+        <p class="ev-section-summary">What actually works today.</p>
+      </header>
+
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Implemented</span>
+        <p>
+          Local boot and Windows Control Center; SQLite persistence and migrations; asynchronous
+          messaging; system-agent bootstrap with standing goals; the BDI reasoning cycle with belief
+          revision, option generation, commitment, and reconsideration; plan libraries and model-authored
+          plans; file-backed agent memory with budgeted prompts; separated status and phase; the one-shot
+          Agent Architect; per-agent provider and model selection; filesystem grants; built-in skills;
+          isolated candidate workspaces; the staged evolution pipeline with validation and supervisor
+          metadata; CI; and an automated test suite.
+        </p>
+      </aside>
+
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimental</span>
+        <p>Model-authored mutations, Git lineage for generations, and the promotion workflow.</p>
+      </aside>
+
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Not implemented</span>
+        <p>
+          A hardened OS sandbox, web UI, Telegram channel, PDF and OCR skills, distributed runtime, cloud
+          providers, and automatic production promotion.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ XV. ROADMAP ============ -->
+    <section class="ev-section" id="roadmap" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XV</span>
+        <h2>Roadmap</h2>
+        <p class="ev-section-summary">Where the work goes next.</p>
+      </header>
+      <p>
+        A Skill Architect and skill generation; richer mutation authoring and structured Git lineage;
+        longer-term memory with retrieval; a local web channel and Telegram; benchmark-based promotion
+        policy; and stronger process isolation.
+      </p>
+      <h4>Built with</h4>
+      <p>
+        Python 3.13, asyncio, Pydantic, SQLite and aiosqlite, HTTPX, uv, Ruff, Pyright, pytest, Git, and
+        local models served by Ollama or InferHub.
+      </p>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ XVI. LICENSE ============ -->
+    <section class="ev-section" id="license" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XVI</span>
+        <h2>License</h2>
+        <p class="ev-section-summary">MIT, for the runtime and these documents alike.</p>
+      </header>
+      <p>
+        EvoMesh and this documentation are released under the MIT License. Open an issue before large
+        architectural changes; keep features local-first; preserve environment-mediated messaging and
+        permissions; add deterministic tests; and update documentation to match what actually works.
+      </p>
+      <div class="ev-actions">
+        <a class="ev-btn" href="https://github.com/Dev-Art-Solutions/EvoMesh" target="_blank" rel="noopener">Repository</a>
+        <a class="ev-btn" href="https://github.com/Dev-Art-Solutions/EvoMesh/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        <a class="ev-btn" href="https://github.com/Dev-Art-Solutions/EvoMesh/issues" target="_blank" rel="noopener">Issues</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- -------------------------------------------------- toc -->
+  <aside class="ev-toc" aria-label="On this page">
+    <span class="ev-label">On this page</span>
+    <ol data-toc></ol>
+  </aside>
+</div>
+
+<!-- ====================================================== footer -->
+<footer class="ev-footer">
+  <div class="ev-footer-mark"><span>∞</span></div>
+  <h2>EvoMesh</h2>
+  <p>An experimental study in persistent artificial minds.</p>
+  <p class="ev-latin">Omnia systemata evolvuntur per relationes.</p>
+  <div class="ev-footer-links">
+    <a href="https://github.com/Dev-Art-Solutions/EvoMesh" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://devart.solutions" target="_blank" rel="noopener">Dev-Art Solutions</a>
+    <a href="https://inferhub.devart.solutions" target="_blank" rel="noopener">InferHub</a>
+    <a href="https://blog.devart.solutions" target="_blank" rel="noopener">Blog</a>
   </div>
-  <a id="back-to-top" data-toggle="tooltip" title="Back to Top" href="javascript:void(0)"><i class="fa fa-chevron-up"></i></a>
-  <script src="assets/vendor/jquery/jquery.min.js"></script>
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/jquery.easing/jquery.easing.min.js"></script>
-  <script src="assets/vendor/highlight.js/highlight.min.js"></script>
-  <script src="assets/js/theme.js"></script>
+  <p class="ev-label mt-4">Dev-Art Solutions · MMXXVI · MIT License</p>
+</footer>
+
+<!-- ====================================================== offcanvas index -->
+<div class="offcanvas offcanvas-start ev-offcanvas" tabindex="-1" id="notebookIndex" aria-labelledby="notebookIndexLabel">
+  <div class="offcanvas-header">
+    <span class="ev-label" id="notebookIndexLabel">Contents</span>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <nav>
+      <ul class="ev-index">
+        <li><a href="#overview" data-bs-dismiss="offcanvas"><span class="ev-numeral">I</span><span>Genesis</span></a></li>
+        <li><a href="#quick-start" data-bs-dismiss="offcanvas"><span class="ev-numeral">II</span><span>Quick start</span></a></li>
+        <li><a href="#environment" data-bs-dismiss="offcanvas"><span class="ev-numeral">III</span><span>The environment</span></a></li>
+        <li><a href="#agents" data-bs-dismiss="offcanvas"><span class="ev-numeral">IV</span><span>Agents</span></a></li>
+        <li><a href="#bdi" data-bs-dismiss="offcanvas"><span class="ev-numeral">V</span><span>Cognition</span></a></li>
+        <li><a href="#memory" data-bs-dismiss="offcanvas"><span class="ev-numeral">VI</span><span>Memory</span></a></li>
+        <li><a href="#skills" data-bs-dismiss="offcanvas"><span class="ev-numeral">VII</span><span>Skills</span></a></li>
+        <li><a href="#permissions" data-bs-dismiss="offcanvas"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
+        <li><a href="#models" data-bs-dismiss="offcanvas"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
+        <li><a href="#evolution" data-bs-dismiss="offcanvas"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
+        <li><a href="#configuration" data-bs-dismiss="offcanvas"><span class="ev-numeral">XI</span><span>Configuration</span></a></li>
+        <li><a href="#console" data-bs-dismiss="offcanvas"><span class="ev-numeral">XII</span><span>Console</span></a></li>
+        <li><a href="#philosophy" data-bs-dismiss="offcanvas"><span class="ev-numeral">XIII</span><span>Philosophy</span></a></li>
+        <li><a href="#status" data-bs-dismiss="offcanvas"><span class="ev-numeral">XIV</span><span>Project status</span></a></li>
+        <li><a href="#roadmap" data-bs-dismiss="offcanvas"><span class="ev-numeral">XV</span><span>Roadmap</span></a></li>
+        <li><a href="#license" data-bs-dismiss="offcanvas"><span class="ev-numeral">XVI</span><span>License</span></a></li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- ====================================================== search -->
+<dialog class="ev-dialog" data-search-dialog aria-label="Search the documentation">
+  <input type="search" placeholder="Search the documentation…" aria-label="Search the documentation" data-search-input autocomplete="off">
+  <ul class="ev-results" data-search-results></ul>
+</dialog>
+
+<button class="ev-icon-btn ev-top" type="button" data-back-to-top aria-label="Back to top"
+        onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5 13.5 9l-1 1L8 5.5 3.5 10l-1-1L8 3.5Z"/></svg>
+</button>
+
+<script src="assets/vendor/bootstrap5/js/bootstrap.bundle.min.js" defer></script>
+<script src="assets/vendor/highlight.js/highlight.min.js" defer></script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(window.hljs){hljs.highlightAll();}});</script>
+<script src="assets/js/notebook.js" defer></script>
 </body>
 </html>
