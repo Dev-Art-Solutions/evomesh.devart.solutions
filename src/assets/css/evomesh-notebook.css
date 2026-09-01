@@ -442,13 +442,18 @@ a:hover { color: var(--ev-ink); }
   font-size: 1.45rem;
   margin: 2.25rem 0 0.6rem;
 }
-.ev-article h4 {
+/* A subhead that sits directly under a section: level three in the outline,
+   the small mono label in the drawing. */
+.ev-article h4,
+.ev-article h3.ev-subhead {
   font-family: var(--ev-mono);
   font-size: 0.78rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ev-ink-muted);
   margin: 1.75rem 0 0.5rem;
+  /* h4 was bold by browser default; .ev-subhead must not read lighter. */
+  font-weight: 700;
 }
 .ev-article p { margin: 0 0 1rem; }
 .ev-article ul, .ev-article ol { margin: 0 0 1.15rem; padding-left: 1.3rem; }
@@ -587,7 +592,7 @@ h2:hover .ev-anchor, h3:hover .ev-anchor, .ev-anchor:focus-visible { opacity: 1;
 .ev-plate img { width: 100%; height: auto; display: block; mix-blend-mode: multiply; }
 :root[data-theme="dark"] .ev-plate img { mix-blend-mode: normal; filter: invert(0.9) hue-rotate(175deg) saturate(0.72) brightness(1.05); }
 .ev-plate-body { padding: 0.9rem 1rem 1.1rem; border-top: 1px solid var(--ev-border); }
-.ev-plate-body h4 { margin: 0.25rem 0 0.4rem; font-family: var(--ev-display); font-size: 1.15rem; letter-spacing: 0; text-transform: none; color: var(--ev-ink); }
+.ev-plate-body h3 { margin: 0.25rem 0 0.4rem; font-family: var(--ev-display); font-size: 1.15rem; letter-spacing: 0; text-transform: none; color: var(--ev-ink); font-weight: 700; }
 .ev-plate-body p { margin: 0; font-size: 0.925rem; color: var(--ev-ink-soft); }
 
 /* --------------------------------------------------------------------------
