@@ -829,9 +829,12 @@ Nothing compacted yet.
         cap ends the job.
       </p>
       <p>
-        Today it can only look. Three tools — <code>read</code> with line numbers and a window,
-        <code>grep</code>, and <code>ls</code> — all confined to the job root, and nothing that can
-        change a file. It is off unless <code>harness.enabled</code> is set.
+        Three tools let it look — <code>read</code> with line numbers and a window,
+        <code>grep</code>, and <code>ls</code> — and two let it act: <code>edit</code> and
+        <code>write</code>. All five are confined to the job root. The harness is off unless
+        <code>harness.enabled</code> is set, and changing a file additionally needs
+        <code>harness.allow_write</code>, because turning it on to ask questions should never
+        quietly grant it the run of your checkout.
       </p>
       <div class="ev-code">
         <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
@@ -841,6 +844,30 @@ Nothing compacted yet.
 bdi.py:reconsider() decides, and it never calls a model.
   4 steps, 67.1 s, 4 tool calls, native tools, session: .runtime/harness/000001.jsonl</code></pre>
       </div>
+
+      <h3 class="ev-subhead" id="harness-edit">The edit that refuses</h3>
+      <p>
+        <code>edit</code> replaces an exact piece of text and <strong>fails unless that text appears
+        exactly once</strong>. The refusal reports how many matches it found and shows the lines
+        around each one, so the anchor can be widened without reading the file again.
+      </p>
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Principium</span>
+        <p>
+          The refusal is the reason the tool exists. A replacement that silently takes the first of
+          three matches produces a change that passes every check and does the wrong thing —
+          worse than the whole-file rewrite it replaces, because that one fails loudly. There is
+          deliberately no <code>occurrence</code> argument: it would let a model that cannot widen an
+          anchor guess an index instead, and every wrong guess is a silent wrong edit.
+        </p>
+      </aside>
+      <p>
+        <code>write</code> writes a whole file and refuses to replace an existing one unless
+        <code>overwrite</code> is passed, so creating and replacing stay different intentions.
+        Every change is recorded in the session as a unified diff <em>before</em> the file is
+        touched: a process killed mid-write leaves a record of what it was about to do, rather than
+        a changed file and no explanation.
+      </p>
 
       <h3 class="ev-subhead" id="harness-protocol">Models that cannot call tools</h3>
       <p>
@@ -878,7 +905,9 @@ bdi.py:reconsider() decides, and it never calls a model.
         <p>
           The harness is not yet wired into the Evolver, which still proposes one whole file per
           generation. Replacing that contract is the next step, and it will be replaced outright
-          rather than kept beside the new path as a fallback nobody exercises.
+          rather than kept beside the new path as a fallback nobody exercises. A 27B local model
+          changes two files in one job in under half a minute; an 8B model, correctly told its
+          anchor was ambiguous, explains the fix instead of making it.
         </p>
       </aside>
     </section>
@@ -975,6 +1004,7 @@ models:
 /evolution promote|discard [n]
 /evolution rollback           Return to the last known good generation
 /harness ask "&lt;question&gt;"     Let the model read the project before answering
+/harness do "&lt;objective&gt;" [path]  Let it change files, if harness.allow_write
 /telegram status|test         Whether the bot is connected, and whether its token works
 /telegram allow|revoke &lt;id&gt;   Manage which chats may talk to the mesh
 /restart                      Restart the mesh into the code now in the tree
@@ -1094,7 +1124,8 @@ models:
           isolated candidate workspaces; the staged evolution pipeline with validation, self-repair and
           supervisor metadata; generations committed under the mesh's own identity, pushed, and
           restarted into; the reachability check that fails a candidate adding code nothing runs;
-          Telegram as a second console; the read-only harness; CI; and an automated test suite.
+          Telegram as a second console; the harness, with tools that read, search, edit and write inside
+          a job root; CI; and an automated test suite.
         </p>
       </aside>
 
@@ -1110,7 +1141,7 @@ models:
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Not implemented</span>
         <p>
-          A hardened OS sandbox, harness tools that write, a harness job queue, a web UI, PDF and OCR
+          A hardened OS sandbox, a harness job queue, a web UI, PDF and OCR
           skills, distributed runtime, cloud providers, and automatic production promotion.
         </p>
       </aside>
@@ -1126,8 +1157,7 @@ models:
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        Harness tools that edit and write, refusing an ambiguous target; a job queue with the harness as a
-        worker, so an agent keeps answering while its work runs; the Evolver moved onto the harness, which
+        A job queue with the harness as a worker, so an agent keeps answering while its work runs; the Evolver moved onto the harness, which
         ends the one-whole-file-per-generation contract; a Skill Architect; longer-term memory with
         retrieval; a local web channel; benchmark-based promotion; and stronger process isolation.
       </p>
