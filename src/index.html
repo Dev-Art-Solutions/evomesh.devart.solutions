@@ -143,12 +143,13 @@
         <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
         <li><a href="#models"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
         <li><a href="#evolution"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
-        <li><a href="#configuration"><span class="ev-numeral">XI</span><span>Configuration</span></a></li>
-        <li><a href="#console"><span class="ev-numeral">XII</span><span>Console</span></a></li>
-        <li><a href="#philosophy"><span class="ev-numeral">XIII</span><span>Philosophy</span></a></li>
-        <li><a href="#status"><span class="ev-numeral">XIV</span><span>Project status</span></a></li>
-        <li><a href="#roadmap"><span class="ev-numeral">XV</span><span>Roadmap</span></a></li>
-        <li><a href="#license"><span class="ev-numeral">XVI</span><span>License</span></a></li>
+        <li><a href="#harness"><span class="ev-numeral">XI</span><span>The harness</span></a></li>
+        <li><a href="#configuration"><span class="ev-numeral">XII</span><span>Configuration</span></a></li>
+        <li><a href="#console"><span class="ev-numeral">XIII</span><span>Console</span></a></li>
+        <li><a href="#philosophy"><span class="ev-numeral">XIV</span><span>Philosophy</span></a></li>
+        <li><a href="#status"><span class="ev-numeral">XV</span><span>Project status</span></a></li>
+        <li><a href="#roadmap"><span class="ev-numeral">XVI</span><span>Roadmap</span></a></li>
+        <li><a href="#license"><span class="ev-numeral">XVII</span><span>License</span></a></li>
       </ul>
     </nav>
   </aside>
@@ -814,10 +815,80 @@ Nothing compacted yet.
 
     <div class="ev-divider"><span>◇</span></div>
 
-    <!-- ============ XI. CONFIGURATION ============ -->
-    <section class="ev-section" id="configuration" data-section>
+    <!-- ============ XI. HARNESS ============ -->
+    <section class="ev-section" id="harness" data-section>
       <header class="ev-section-head">
         <span class="ev-numeral-lg">XI</span>
+        <h2>The harness</h2>
+        <p class="ev-section-summary">A model that looks at the project before it answers.</p>
+      </header>
+      <p>
+        Everywhere else in EvoMesh a model is asked one question and whatever comes back is the
+        answer. The harness is the other shape: it hands the model tools, runs what it asks for,
+        gives it the results, and asks again — until the model answers without calling a tool, or a
+        cap ends the job.
+      </p>
+      <p>
+        Today it can only look. Three tools — <code>read</code> with line numbers and a window,
+        <code>grep</code>, and <code>ls</code> — all confined to the job root, and nothing that can
+        change a file. It is off unless <code>harness.enabled</code> is set.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">evomesh&gt; /harness ask "which module decides when an agent reconsiders?"
+  grep {"pattern": "def reconsider"}
+  read {"path": "src/evomesh/bdi.py", "offset": 150}
+bdi.py:reconsider() decides, and it never calls a model.
+  4 steps, 67.1 s, 4 tool calls, native tools, session: .runtime/harness/000001.jsonl</code></pre>
+      </div>
+
+      <h3 class="ev-subhead" id="harness-protocol">Models that cannot call tools</h3>
+      <p>
+        Most models that fit on a small card have no tool calling in their chat template. The
+        harness drives them with a one-line JSON protocol in plain text instead, over the same tool
+        registry, and falls back for the rest of the job the first time a provider refuses. A
+        harness that required native tool calls would not run on the hardware this project exists
+        to serve.
+      </p>
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Principium</span>
+        <p>
+          Tool output is truncated <em>by the tool</em>, which says how many lines it withheld and
+          which offset asks for them. A silent trim leaves the model believing it has read a whole
+          file, and the model server would drop the oldest end of the prompt — the objective —
+          without saying so.
+        </p>
+      </aside>
+
+      <h3 class="ev-subhead" id="harness-refusals">Refusals are results</h3>
+      <p>
+        A path outside the job root, a missing filesystem grant, a malformed argument, an invented
+        tool name: each comes back as text the model can act on, not as an exception. A loop that
+        dies on the first denied path cannot work under least privilege at all. Only a host failure
+        ends a job.
+      </p>
+      <p>
+        A job that exhausts its step budget or its wall clock ends as <code>capped</code>, not
+        <code>failed</code>. It did not go wrong; it ran out of room, and the two deserve different
+        responses. Every job writes one JSONL file under <code>.runtime/harness/</code>, flushed as
+        it runs, so a job that hangs still leaves the whole story up to that moment.
+      </p>
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimentum</span>
+        <p>
+          The harness is not yet wired into the Evolver, which still proposes one whole file per
+          generation. Replacing that contract is the next step, and it will be replaced outright
+          rather than kept beside the new path as a fallback nobody exercises.
+        </p>
+      </aside>
+    </section>
+
+    <div class="ev-divider"><span>◇</span></div>
+
+    <!-- ============ XII. CONFIGURATION ============ -->
+    <section class="ev-section" id="configuration" data-section>
+      <header class="ev-section-head">
+        <span class="ev-numeral-lg">XII</span>
         <h2>Configuration</h2>
         <p class="ev-section-summary">One file, and what each dial actually does.</p>
       </header>
@@ -869,10 +940,10 @@ models:
 
     <div class="ev-divider"><span>◇</span></div>
 
-    <!-- ============ XII. CONSOLE ============ -->
+    <!-- ============ XIII. CONSOLE ============ -->
     <section class="ev-section" id="console" data-section>
       <header class="ev-section-head">
-        <span class="ev-numeral-lg">XII</span>
+        <span class="ev-numeral-lg">XIII</span>
         <h2>Console</h2>
         <p class="ev-section-summary">The full command surface.</p>
       </header>
@@ -903,6 +974,10 @@ models:
 /evolution start &lt;objective&gt;  Give the Evolver a new objective
 /evolution promote|discard [n]
 /evolution rollback           Return to the last known good generation
+/harness ask "&lt;question&gt;"     Let the model read the project before answering
+/telegram status|test         Whether the bot is connected, and whether its token works
+/telegram allow|revoke &lt;id&gt;   Manage which chats may talk to the mesh
+/restart                      Restart the mesh into the code now in the tree
 /exit                         Stop EvoMesh</code></pre>
       </div>
 
@@ -915,10 +990,10 @@ models:
 
     <div class="ev-divider"><span>◇</span></div>
 
-    <!-- ============ XIII. PHILOSOPHY ============ -->
+    <!-- ============ XIV. PHILOSOPHY ============ -->
     <section class="ev-section" id="philosophy" data-section>
       <header class="ev-section-head">
-        <span class="ev-numeral-lg">XIII</span>
+        <span class="ev-numeral-lg">XIV</span>
         <h2>Philosophy</h2>
         <p class="ev-section-summary">Why the thing is shaped this way.</p>
         <p class="ev-latin">Machina quae se ipsam mutat</p>
@@ -999,10 +1074,10 @@ models:
 
     <div class="ev-divider"><span>◇</span></div>
 
-    <!-- ============ XIV. STATUS ============ -->
+    <!-- ============ XV. STATUS ============ -->
     <section class="ev-section" id="status" data-section>
       <header class="ev-section-head">
-        <span class="ev-numeral-lg">XIV</span>
+        <span class="ev-numeral-lg">XV</span>
         <h2>Project status</h2>
         <p class="ev-section-summary">What actually works today.</p>
       </header>
@@ -1016,38 +1091,45 @@ models:
           plans; file-backed agent memory with budgeted prompts; separated status and phase; the one-shot
           Agent Architect; per-agent provider and model selection; live work reporting, so an agent asked
           what it is doing answers from runtime state rather than from memory; filesystem grants; built-in skills;
-          isolated candidate workspaces; the staged evolution pipeline with validation and supervisor
-          metadata; CI; and an automated test suite.
+          isolated candidate workspaces; the staged evolution pipeline with validation, self-repair and
+          supervisor metadata; generations committed under the mesh's own identity, pushed, and
+          restarted into; the reachability check that fails a candidate adding code nothing runs;
+          Telegram as a second console; the read-only harness; CI; and an automated test suite.
         </p>
       </aside>
 
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimental</span>
-        <p>Model-authored mutations, Git lineage for generations, and the promotion workflow.</p>
+        <p>
+          Model-authored mutations and the promotion workflow. The harness is exercised but not yet
+          wired into the Evolver, and its text protocol for models without tool calling has been
+          shown to operate on a 7B model rather than to be used well by one.
+        </p>
       </aside>
 
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Not implemented</span>
         <p>
-          A hardened OS sandbox, web UI, Telegram channel, PDF and OCR skills, distributed runtime, cloud
-          providers, and automatic production promotion.
+          A hardened OS sandbox, harness tools that write, a harness job queue, a web UI, PDF and OCR
+          skills, distributed runtime, cloud providers, and automatic production promotion.
         </p>
       </aside>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
 
-    <!-- ============ XV. ROADMAP ============ -->
+    <!-- ============ XVI. ROADMAP ============ -->
     <section class="ev-section" id="roadmap" data-section>
       <header class="ev-section-head">
-        <span class="ev-numeral-lg">XV</span>
+        <span class="ev-numeral-lg">XVI</span>
         <h2>Roadmap</h2>
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        A Skill Architect and skill generation; richer mutation authoring and structured Git lineage;
-        longer-term memory with retrieval; a local web channel and Telegram; benchmark-based promotion
-        policy; and stronger process isolation.
+        Harness tools that edit and write, refusing an ambiguous target; a job queue with the harness as a
+        worker, so an agent keeps answering while its work runs; the Evolver moved onto the harness, which
+        ends the one-whole-file-per-generation contract; a Skill Architect; longer-term memory with
+        retrieval; a local web channel; benchmark-based promotion; and stronger process isolation.
       </p>
       <h3 class="ev-subhead">Built with</h3>
       <p>
@@ -1058,10 +1140,10 @@ models:
 
     <div class="ev-divider"><span>◇</span></div>
 
-    <!-- ============ XVI. LICENSE ============ -->
+    <!-- ============ XVII. LICENSE ============ -->
     <section class="ev-section" id="license" data-section>
       <header class="ev-section-head">
-        <span class="ev-numeral-lg">XVI</span>
+        <span class="ev-numeral-lg">XVII</span>
         <h2>License</h2>
         <p class="ev-section-summary">MIT, for the runtime and these documents alike.</p>
       </header>
@@ -1119,12 +1201,13 @@ models:
         <li><a href="#permissions" data-bs-dismiss="offcanvas"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
         <li><a href="#models" data-bs-dismiss="offcanvas"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
         <li><a href="#evolution" data-bs-dismiss="offcanvas"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
-        <li><a href="#configuration" data-bs-dismiss="offcanvas"><span class="ev-numeral">XI</span><span>Configuration</span></a></li>
-        <li><a href="#console" data-bs-dismiss="offcanvas"><span class="ev-numeral">XII</span><span>Console</span></a></li>
-        <li><a href="#philosophy" data-bs-dismiss="offcanvas"><span class="ev-numeral">XIII</span><span>Philosophy</span></a></li>
-        <li><a href="#status" data-bs-dismiss="offcanvas"><span class="ev-numeral">XIV</span><span>Project status</span></a></li>
-        <li><a href="#roadmap" data-bs-dismiss="offcanvas"><span class="ev-numeral">XV</span><span>Roadmap</span></a></li>
-        <li><a href="#license" data-bs-dismiss="offcanvas"><span class="ev-numeral">XVI</span><span>License</span></a></li>
+        <li><a href="#harness" data-bs-dismiss="offcanvas"><span class="ev-numeral">XI</span><span>The harness</span></a></li>
+        <li><a href="#configuration" data-bs-dismiss="offcanvas"><span class="ev-numeral">XII</span><span>Configuration</span></a></li>
+        <li><a href="#console" data-bs-dismiss="offcanvas"><span class="ev-numeral">XIII</span><span>Console</span></a></li>
+        <li><a href="#philosophy" data-bs-dismiss="offcanvas"><span class="ev-numeral">XIV</span><span>Philosophy</span></a></li>
+        <li><a href="#status" data-bs-dismiss="offcanvas"><span class="ev-numeral">XV</span><span>Project status</span></a></li>
+        <li><a href="#roadmap" data-bs-dismiss="offcanvas"><span class="ev-numeral">XVI</span><span>Roadmap</span></a></li>
+        <li><a href="#license" data-bs-dismiss="offcanvas"><span class="ev-numeral">XVII</span><span>License</span></a></li>
       </ul>
     </nav>
   </div>
