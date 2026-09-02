@@ -751,7 +751,7 @@ Nothing compacted yet.
       </figure>
 
       <p>
-        Candidates are copied into isolated generation directories and never overwrite the active tree.
+        A generation is authored by a harness job inside the candidate, and the suite that judges it runs off the agent's cycle, so the Evolver keeps answering while both happen. Candidates are copied into isolated generation directories and never overwrite the active tree.
         Runtime state is deliberately excluded from the copy: shipping the live database and every
         agent's memory inside a tree that may later be promoted is both a correctness and a privacy
         problem. The supervisor tracks active, candidate, and last-known-good generations in atomic
@@ -829,7 +829,7 @@ Nothing compacted yet.
         cap ends the job.
       </p>
       <p>
-        Three tools let it look — <code>read</code> with line numbers and a window,
+        Five tools, and a sixth that is off. Three let it look — <code>read</code> with line numbers and a window,
         <code>grep</code>, and <code>ls</code> — and two let it act: <code>edit</code> and
         <code>write</code>. All five are confined to the job root. The harness is off unless
         <code>harness.enabled</code> is set, and changing a file additionally needs
@@ -900,14 +900,96 @@ bdi.py:reconsider() decides, and it never calls a model.
         responses. Every job writes one JSONL file under <code>.runtime/harness/</code>, flushed as
         it runs, so a job that hangs still leaves the whole story up to that moment.
       </p>
+      <h3 class="ev-subhead" id="harness-queue">A job is asked for, not done</h3>
+      <p>
+        A tool loop takes minutes; a cycle has to stay a tick. So an agent submits a job to a queue
+        and keeps running — it still answers <code>/chat</code>, still reports what it is working
+        on, still appears in <code>/agents</code> — and simply commits to nothing new while a job of
+        its own is open. Its phase reads <code>awaiting-harness</code>, which is deliberately not
+        <code>waiting-human</code>: one is blocked on a person who may never come back, the other on
+        a worker that certainly will.
+      </p>
+      <p>
+        When the job finishes, the result arrives in the agent's mailbox as an <em>ordinary
+        message</em>, with the audit record every message gets. Nothing calls back into the agent,
+        and no behaviour has to know a worker exists. One worker by default: two tool loops on one
+        card do not go twice as fast, they queue inside the GPU where nothing can see them instead
+        of in a queue where you can.
+      </p>
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>
+          The queue is not durable. Stopping the mesh cancels what is in it and <em>tells the
+          submitter</em> — the only thing worse than a cancelled job is a plan step that no event
+          will ever finish.
+        </p>
+      </aside>
+
+      <h3 class="ev-subhead" id="harness-generations">How a generation is authored</h3>
+      <p>
+        The Environment Evolver no longer writes whole files. A generation is a harness job in the
+        candidate workspace: the model reads, greps and edits its way to the change, so a generation
+        can touch more than one file. What it changed is read back from the session — every applied
+        edit with its diff — rather than taken from the model's word for it, and
+        <code>docs/evolution/&lt;n&gt;.md</code> prints those diffs into the commit.
+      </p>
+      <p>
+        A job that finishes without changing a file is reported and stops there. Validating an
+        untouched candidate would pass, and a generation that passes while changing nothing is the
+        dead-code failure wearing a verdict.
+      </p>
+
+      <h3 class="ev-subhead" id="harness-budgets">Surviving the output of its own tools</h3>
+      <p>
+        The tools cap their own output; the <em>pile</em> of it is capped too. Past
+        <code>harness.transcript_chars</code> the oldest tool results are replaced by a marker
+        naming the tool and the size dropped, while the task and every assistant turn always
+        survive — a turn is the model's reasoning and it is small, a result is a file the model can
+        read again.
+      </p>
+      <p>
+        The same tool call three times in a row ends the job as <code>capped</code>: the second is
+        answered from the first result rather than run again, and the third stops the job, because
+        it has stopped making progress rather than gone wrong. A writing job past halfway that has
+        changed nothing is told so, once.
+      </p>
+
+      <h3 class="ev-subhead" id="harness-shell">The shell tool, sixth and off</h3>
+      <p>
+        <code>harness.shell_allow</code> is an allow-list of program names, empty by default — with
+        nothing in it the tool is not offered to the model at all. There is no shell interpreter
+        behind it: the command is split and run directly, so <code>|</code>, <code>&amp;&amp;</code>
+        and <code>$(…)</code> are arguments rather than operators, and <code>curl x | python</code>
+        is refused for <code>curl</code>. Everything runs in the job root, and one command is
+        bounded by <code>harness.shell_seconds</code>.
+      </p>
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>
+          None of this is a sandbox. EvoMesh's filesystem policy is an application-level control,
+          and a shell tool makes that sentence matter more rather than less.
+        </p>
+      </aside>
+
+      <h3 class="ev-subhead" id="harness-agents">Not only the Evolver</h3>
+      <p>
+        <code>/harness grant "Notes Summarizer" D:/notes</code> lets an ordinary agent use the tools
+        inside one directory, and <code>/harness revoke</code> takes it back. A granted agent takes
+        a plan step with tools rather than with a prompt when the step starts with a looking verb —
+        <em>investigate</em>, <em>find</em>, <em>search</em>, <em>check</em>, <em>inspect</em>,
+        <em>review</em>, <em>diagnose</em>. Everything else stays a plain model call, and the
+        finding is written into the agent's memory as that step's outcome.
+      </p>
+
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimentum</span>
         <p>
-          The harness is not yet wired into the Evolver, which still proposes one whole file per
-          generation. Replacing that contract is the next step, and it will be replaced outright
-          rather than kept beside the new path as a fallback nobody exercises. A 27B local model
-          changes two files in one job in under half a minute; an 8B model, correctly told its
-          anchor was ambiguous, explains the fix instead of making it.
+          The whole loop has run end to end against a local 27B model: the harness authored the
+          change, the suite ran off the cycle, the verdict came back, the repair ran on the harness,
+          and the candidate was handed to a human. It also found three of our own defects doing it,
+          including the one where every candidate had been failing validation on an import we had
+          written. An 8B model, correctly told that its edit anchor was ambiguous, explains the fix
+          instead of making it — the model floor is real and it is written down.
         </p>
       </aside>
     </section>
@@ -1005,6 +1087,9 @@ models:
 /evolution rollback           Return to the last known good generation
 /harness ask "&lt;question&gt;"     Let the model read the project before answering
 /harness do "&lt;objective&gt;" [path]  Let it change files, if harness.allow_write
+/harness status               Queue, workers, and what the last jobs did
+/harness grant &lt;agent&gt; [path] Let an agent use the harness in a directory
+/harness revoke &lt;agent&gt;       Take it away
 /telegram status|test         Whether the bot is connected, and whether its token works
 /telegram allow|revoke &lt;id&gt;   Manage which chats may talk to the mesh
 /restart                      Restart the mesh into the code now in the tree
@@ -1124,24 +1209,26 @@ models:
           isolated candidate workspaces; the staged evolution pipeline with validation, self-repair and
           supervisor metadata; generations committed under the mesh's own identity, pushed, and
           restarted into; the reachability check that fails a candidate adding code nothing runs;
-          Telegram as a second console; the harness, with tools that read, search, edit and write inside
-          a job root; CI; and an automated test suite.
+          Telegram as a second console; the harness, with tools that read, search, edit, write and (when
+          allowed) run a command inside a job root, driven by a worker off the agent's cycle;
+          generations authored through that harness; validation that runs in its own lane; CI;
+          and an automated test suite.
         </p>
       </aside>
 
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimental</span>
         <p>
-          Model-authored mutations and the promotion workflow. The harness is exercised but not yet
-          wired into the Evolver, and its text protocol for models without tool calling has been
-          shown to operate on a 7B model rather than to be used well by one.
+          Model-authored generations and the promotion workflow. The text protocol for models
+          without tool calling has been shown to <em>operate</em> on a 7B model rather than to be
+          used well by one, and only a 27B model has authored a generation end to end.
         </p>
       </aside>
 
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Not implemented</span>
         <p>
-          A hardened OS sandbox, a harness job queue, a web UI, PDF and OCR
+          A hardened OS sandbox, a web UI, PDF and OCR
           skills, distributed runtime, cloud providers, and automatic production promotion.
         </p>
       </aside>
@@ -1157,9 +1244,9 @@ models:
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        A job queue with the harness as a worker, so an agent keeps answering while its work runs; the Evolver moved onto the harness, which
-        ends the one-whole-file-per-generation contract; a Skill Architect; longer-term memory with
-        retrieval; a local web channel; benchmark-based promotion; and stronger process isolation.
+        A Skill Architect and skill generation; longer-term memory with retrieval; a local web
+        channel; benchmark-based promotion; a Control Center view of the job queue; and stronger
+        process isolation.
       </p>
       <h3 class="ev-subhead">Built with</h3>
       <p>
