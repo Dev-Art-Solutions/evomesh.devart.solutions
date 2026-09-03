@@ -127,6 +127,7 @@
           <ul>
             <li><a href="#lifecycle">Status and phase</a></li>
             <li><a href="#current-work">Asking an agent what it is working on</a></li>
+            <li><a href="#cadence">Goals and their own cadence</a></li>
             <li><a href="#architect">Agent Architect</a></li>
           </ul>
         </li>
@@ -139,7 +140,11 @@
           </ul>
         </li>
         <li><a href="#memory"><span class="ev-numeral">VI</span><span>Memory</span></a></li>
-        <li><a href="#skills"><span class="ev-numeral">VII</span><span>Skills</span></a></li>
+        <li><a href="#skills"><span class="ev-numeral">VII</span><span>Skills and tools</span></a>
+          <ul>
+            <li><a href="#custom-tools">Custom tools</a></li>
+          </ul>
+        </li>
         <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
         <li><a href="#models"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
         <li><a href="#evolution"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
@@ -434,6 +439,42 @@ pyright, pytest and the smoke test; nothing is promoted yet.</code></pre>
         </p>
       </aside>
 
+      <h3 id="cadence">Goals and their own cadence</h3>
+      <p>
+        <code>runtime.cycle_seconds</code> is the agent's own heartbeat, shared by every message and
+        every other goal it has — slowing it down to satisfy one goal that only needs hourly
+        attention would starve everything else in between it. A goal can carry a schedule of its
+        own instead, in one of two shapes, and the agent's own cadence never changes either way.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Terminalis</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">/goal add "Scraper" "Check example.com for changes" 5 3600
+/goal add "Scraper" "Send the daily digest" 5 "0 9 * * *"</code></pre>
+      </div>
+      <p>
+        The first re-checks every 3600 seconds after it last finished; the second fires at 09:00
+        UTC every day, the standard five-field <code>minute hour day month weekday</code> form,
+        matched by a small dependency-free parser rather than a new package. A cron goal does not
+        run the instant it is added — it waits for its first scheduled time, the way a real cron
+        job would. Either way, <code>next_goal()</code> simply skips the one still waiting in favour
+        of whatever else is open, so a chat reply or another goal is never behind it in the queue.
+      </p>
+      <p>
+        <code>/goal notify &lt;agent&gt; &lt;id&gt; [on|off]</code> makes one goal push its progress
+        rather than wait to be asked — every step while it is on, not only the moment it finishes.
+        It reaches Telegram as it happens and, for a connection with no push of its own, is pulled
+        with <code>/notifications [since-id]</code>, the same cursor the desktop Control Center
+        polls on its existing health check.
+      </p>
+      <aside class="ev-callout">
+        <span class="ev-label">Nota</span>
+        <p>
+          Off by default, per goal. A one-shot goal's first claimed completion is a small model's
+          rubber stamp, not a real finish — it is reported as progress, and only a genuine
+          completion is announced as done.
+        </p>
+      </aside>
+
       <h3 id="architect">Agent Architect</h3>
       <p>
         Run <code>/chat architect</code> and describe what you need in one sentence. Architect derives the
@@ -451,7 +492,7 @@ Draft ready.
   name:     Note Reader
   purpose:  read my markdown notes in D:/notes and write a weekly summary
   model:    ollama:qwen3
-  skills:   Markdown.Read, Filesystem.Write, Filesystem.Read
+  skills:   none
   access:   D:/notes
   first goal: read my markdown notes in D:/notes and write a weekly summary
 
@@ -637,18 +678,82 @@ Nothing compacted yet.
     <section class="ev-section" id="skills" data-section>
       <header class="ev-section-head">
         <span class="ev-numeral-lg">VII</span>
-        <h2>Skills</h2>
-        <p class="ev-section-summary">Capabilities as shared, discoverable objects.</p>
+        <h2>Skills and tools</h2>
+        <p class="ev-section-summary">A description an agent decides to read, and a command it can call directly.</p>
       </header>
+      <p class="ev-margin">Everything a skill could ever do already exists as a harness tool. A skill only ever adds the procedure for when to reach for which one.</p>
       <p>
-        The shared registry supports discovery, attachment, and invocation. Built-ins are
-        <code>Filesystem.Read</code>, <code>Filesystem.Write</code>, <code>Markdown.Read</code>,
-        <code>Markdown.Write</code>, <code>Git.Status</code>, and <code>Git.Diff</code>. A missing
-        capability returns a structured missing-skill error rather than a silent failure.
+        A skill is a description, never a capability the mesh executes on an agent's behalf — the
+        same shape Claude Code itself uses. One skill is one directory under <code>skills/</code>, a
+        <code>SKILL.md</code> with YAML frontmatter (<code>name</code>, <code>description</code>)
+        over a Markdown body. <code>SkillRegistry</code> has no "run this skill" method: an agent
+        reaches one the same way it reaches any other file, with the harness's own <code>read</code>
+        tool, once <code>render_catalog()</code> has named it and where to read it in the job's task
+        text. The model decides whether reading it is worth a step; nothing here ever executes what
+        the file says.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>skills/web-research/SKILL.md</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-yaml">---
+name: web-research
+description: Fetch a web page and use its content to answer a question, instead of guessing from memory.
+---
+
+Use the `fetch` tool. Do not answer from memory when a URL is available…</code></pre>
+      </div>
+      <p>
+        A skill's directory can hold scripts beside <code>SKILL.md</code> too — one or a group of
+        commands, named by the body for an agent to run with its own harness tools. Three ship with
+        the repo: <code>web-research</code>, <code>wire-a-dead-module</code>, and
+        <code>validate-skill</code>, whose bundled <code>scripts/check.py</code> checks a candidate
+        <code>SKILL.md</code>'s frontmatter before installing it, using the identical rules the
+        installer enforces.
+      </p>
+      <p>
+        <code>/skill install &lt;path-or-url-or-directory&gt;</code> is the whole market mechanism: a
+        lone file, one fetched over HTTP, or a directory bundling scripts, all installed live, no
+        restart. A "skill builder" needs no new agent type — grant any agent harness write access to
+        <code>skills/</code>, give it a purpose that says to write one for a procedure it notices
+        repeating, and it already has everything <code>/skill install</code> has.
+      </p>
+
+      <h3 class="ev-subhead" id="custom-tools">Custom tools</h3>
+      <p>
+        A skill is read on the model's own initiative; a tool is called directly, the way
+        <code>read</code> or <code>fetch</code> already are — a named, described, parameterized
+        affordance instead of a shell command line a small model has to construct correctly from
+        prose. <code>tools/&lt;name&gt;/TOOL.md</code> declares a <code>command</code> template and
+        named parameters; nothing here is Python loaded into the running process.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>tools/check-site/TOOL.md</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-yaml">---
+name: check-site
+description: Check whether a URL responds, and how fast.
+command: python "{tool_dir}/scripts/check.py"
+parameters:
+  - name: url
+    description: The URL to check, including scheme (https://...).
+    required: true
+---</code></pre>
+      </div>
+      <p>
+        A call shells out through the exact allow-listed subprocess path the <code>shell</code> tool
+        already uses — a parameter's value is appended as one more argument, never interpolated into
+        a string that gets re-parsed — so a custom tool can never run anything beyond what its own
+        command already names, and never anything at all unless that program is in
+        <code>harness.shell_allow</code>. <code>{tool_dir}</code> resolves to the tool's own absolute
+        directory, not the calling job's root: a harness job's root is whatever the job is about, a
+        non-system agent's own playground most of the time, never reliably this project's own tree.
+      </p>
+      <p>
+        <code>/tools [query]</code> lists installed tools and says which are active;
+        <code>/tool install &lt;path-or-url-or-directory&gt;</code> is the same one-step mechanism
+        <code>/skill install</code> already has.
       </p>
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Cautio</span>
-        <p>A skill never grants path access by itself. Capability and authority are separate on purpose.</p>
+        <p>Neither grants path access by itself. Capability and authority are separate on purpose.</p>
       </aside>
     </section>
 
@@ -980,6 +1085,15 @@ bdi.py:reconsider() decides, and it never calls a model.
         <em>review</em>, <em>diagnose</em>. Everything else stays a plain model call, and the
         finding is written into the agent's memory as that step's outcome.
       </p>
+      <p>
+        <code>/harness grant "Notes Summarizer"</code> with no path still has to pick somewhere.
+        A system agent — the Evolver, Guardian, Evaluator, the Architect — defaults to the project
+        root, exactly as it always has. Anything else defaults to a playground of its own instead:
+        <code>workspace/agents/&lt;agent&gt;/playground/</code>, created the moment the agent exists,
+        so there is somewhere to land in even before harness access is ever granted. One or more
+        folders, freely read and written, with no risk of an agent you just created editing this
+        project's own source because nobody thought to name a path.
+      </p>
 
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimentum</span>
@@ -1203,9 +1317,13 @@ models:
           Local boot and Windows Control Center; SQLite persistence and migrations; asynchronous
           messaging; system-agent bootstrap with standing goals; the BDI reasoning cycle with belief
           revision, option generation, commitment, and reconsideration; plan libraries and model-authored
-          plans; file-backed agent memory with budgeted prompts; separated status and phase; the one-shot
-          Agent Architect; per-agent provider and model selection; live work reporting, so an agent asked
-          what it is doing answers from runtime state rather than from memory; filesystem grants; built-in skills;
+          plans; file-backed agent memory with budgeted prompts, and a playground of its own for every
+          non-system agent; separated status and phase; the one-shot Agent Architect; per-agent provider
+          and model selection; live work reporting, so an agent asked what it is doing answers from
+          runtime state rather than from memory; a goal's own cadence — an interval or a cron schedule —
+          independent of the agent's cycle, and opt-in progress and completion announcements to Telegram
+          and the desktop Control Center; filesystem grants; description-based skills that may bundle
+          scripts, and declarative custom tools called directly, both installable live with no restart;
           isolated candidate workspaces; the staged evolution pipeline with validation, self-repair and
           supervisor metadata; generations committed under the mesh's own identity, pushed, and
           restarted into; the reachability check that fails a candidate adding code nothing runs;
@@ -1244,9 +1362,8 @@ models:
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        A Skill Architect and skill generation; longer-term memory with retrieval; a local web
-        channel; benchmark-based promotion; a Control Center view of the job queue; and stronger
-        process isolation.
+        Longer-term memory with retrieval; a local web channel; benchmark-based promotion; a Control
+        Center view of the job queue; and stronger process isolation.
       </p>
       <h3 class="ev-subhead">Built with</h3>
       <p>
@@ -1314,7 +1431,7 @@ models:
         <li><a href="#agents" data-bs-dismiss="offcanvas"><span class="ev-numeral">IV</span><span>Agents</span></a></li>
         <li><a href="#bdi" data-bs-dismiss="offcanvas"><span class="ev-numeral">V</span><span>Cognition</span></a></li>
         <li><a href="#memory" data-bs-dismiss="offcanvas"><span class="ev-numeral">VI</span><span>Memory</span></a></li>
-        <li><a href="#skills" data-bs-dismiss="offcanvas"><span class="ev-numeral">VII</span><span>Skills</span></a></li>
+        <li><a href="#skills" data-bs-dismiss="offcanvas"><span class="ev-numeral">VII</span><span>Skills and tools</span></a></li>
         <li><a href="#permissions" data-bs-dismiss="offcanvas"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
         <li><a href="#models" data-bs-dismiss="offcanvas"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
         <li><a href="#evolution" data-bs-dismiss="offcanvas"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
