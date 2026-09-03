@@ -53,11 +53,13 @@
 
   var article = document.querySelector("[data-article]");
   var tocList = document.querySelector("[data-toc]");
+  var tocAside = document.querySelector(".ev-toc");
 
   /* A section owns its id, and its <h2> is the title of that id. Collecting
    * the pair (rather than only headings that carry an id themselves) is what
-   * keeps section titles in the table of contents. querySelectorAll returns
-   * document order, so a section always precedes its own subheadings. */
+   * keeps section titles in the search index (below). querySelectorAll
+   * returns document order, so a section always precedes its own
+   * subheadings. */
   var headings = [];
   if (article) {
     article.querySelectorAll("[data-section], h3[id]").forEach(function (node) {
@@ -72,24 +74,51 @@
     });
   }
 
-  if (tocList && headings.length) {
-    headings.forEach(function (entry) {
+  /* The left rail already lists every section (and its own curated
+   * subheadings) for the whole notebook -- a right-hand column doing the
+   * same thing again is not a second, more detailed contents page, it is
+   * the same page twice. "On this page" is taken literally instead: each
+   * section keeps its own outline, and the aside shows only the one for
+   * whichever section the reader is actually inside right now. */
+  var sectionOutlines = {};
+  if (article) {
+    article.querySelectorAll("[data-section]").forEach(function (section) {
+      var entries = [];
+      section.querySelectorAll("h3[id]").forEach(function (h3) {
+        entries.push({ id: h3.id, text: h3.textContent.trim() });
+      });
+      sectionOutlines[section.id] = entries;
+    });
+  }
+
+  var tocLinks = [];
+  var renderedTocSection = null;
+
+  function renderToc(sectionId) {
+    if (!tocList || sectionId === renderedTocSection) {
+      return;
+    }
+    renderedTocSection = sectionId;
+    tocList.innerHTML = "";
+    tocLinks = [];
+    var entries = sectionOutlines[sectionId] || [];
+    if (tocAside) {
+      tocAside.hidden = entries.length === 0;
+    }
+    entries.forEach(function (entry) {
       var item = document.createElement("li");
       var link = document.createElement("a");
       link.href = "#" + entry.id;
       link.textContent = entry.text;
-      if (entry.level === 3) {
-        link.style.paddingLeft = "1.5rem";
-      }
       item.appendChild(link);
       tocList.appendChild(item);
+      tocLinks.push(link);
     });
   }
 
   /* Highlight the heading currently being read, in both the TOC and the index.
    * IntersectionObserver alone is jumpy on long sections, so the nearest
    * heading above the reading line wins. */
-  var tocLinks = tocList ? Array.prototype.slice.call(tocList.querySelectorAll("a")) : [];
   var indexLinks = Array.prototype.slice.call(document.querySelectorAll("[data-index] a[href^='#']"));
 
   function markCurrent(links, id) {
@@ -110,16 +139,6 @@
     ticking = false;
     var line = window.scrollY + window.innerHeight * 0.28;
 
-    var activeHeading = headings.length ? headings[0] : null;
-    headings.forEach(function (entry) {
-      if (entry.el.getBoundingClientRect().top + window.scrollY <= line) {
-        activeHeading = entry;
-      }
-    });
-    if (activeHeading) {
-      markCurrent(tocLinks, activeHeading.id);
-    }
-
     var activeSection = sections.length ? sections[0] : null;
     sections.forEach(function (section) {
       if (section.getBoundingClientRect().top + window.scrollY <= line) {
@@ -128,6 +147,20 @@
     });
     if (activeSection) {
       markCurrent(indexLinks, activeSection.id);
+      renderToc(activeSection.id);
+    }
+
+    if (activeSection && tocLinks.length) {
+      var activeHeading = headings[0];
+      headings.forEach(function (entry) {
+        if (
+          tocLinks.some(function (link) { return link.getAttribute("href") === "#" + entry.id; }) &&
+          entry.el.getBoundingClientRect().top + window.scrollY <= line
+        ) {
+          activeHeading = entry;
+        }
+      });
+      markCurrent(tocLinks, activeHeading.id);
     }
 
     var top = document.querySelector("[data-back-to-top]");
