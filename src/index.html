@@ -916,6 +916,37 @@ parameters:
           production promotion is deliberately out of scope.
         </p>
       </aside>
+
+      <p>
+        The pipeline can also plan before it authors anything. With
+        <code>evolution.auto_plan: true</code>, a generation drafts a plan, sends it through a
+        review stage that can reject it and force a redraft, then recursively splits an approved
+        plan into a tree of minimal work items — however many a step actually needs, never forced
+        into two. <code>propose</code> and <code>validate</code> then loop once per item instead of
+        once per generation, and every draft, review and split is committed under
+        <code>docs/evolution/plans/</code> next to the code it produced, so "why did it do that" is
+        answered by reading the tree rather than by trusting one end-of-job sentence.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Consilium</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">plan ──▶ draft ──▶ evaluate ─┬─(reject)──▶ draft
+                              └─(approve)─▶ decompose ──▶ decompose ...
+                                                │ (leaves found)
+                                                ▼
+                   propose ──▶ validate ──▶ repair ──▶ report ──▶ await-human
+                      ▲            │ (more work items)
+                      └────────────┘</code></pre>
+      </div>
+
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimentum</span>
+        <p>
+          Off by default. No revision or decomposition-depth limit — the model alone decides when
+          a draft is approved and when an item is minimal, so a planned generation can take a lot
+          longer than an unplanned one.
+        </p>
+      </aside>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -1339,7 +1370,10 @@ models:
         <p>
           Model-authored generations and the promotion workflow. The text protocol for models
           without tool calling has been shown to <em>operate</em> on a 7B model rather than to be
-          used well by one, and only a 27B model has authored a generation end to end.
+          used well by one, and only a 27B model has authored a generation end to end. The opt-in
+          plan-first pipeline — draft, review, and recursive decomposition into a tree of minimal
+          work items before any of them is authored — is unit-tested but has not yet run a
+          generation end to end against a real model.
         </p>
       </aside>
 
