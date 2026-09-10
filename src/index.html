@@ -865,23 +865,36 @@ parameters:
 
       <div class="ev-code">
         <div class="ev-code-head"><span>Generatio</span><button class="ev-copy" type="button" data-copy></button></div>
-<pre><code class="language-plaintext">plan ──▶ propose ──▶ validate ──▶ report ──▶ await-human
+<pre><code class="language-plaintext">plan ──▶ propose ──▶ validate ──▶ repair ──▶ report ──▶ await-human
 
   validation runs, in order:
+    codebase hygiene check      (new orphan module, or a stray script at the repo root)
     uv sync
     uv run ruff check .
     uv run pyright
     uv run pytest
     uv run python -m evomesh.smoke
 
-  PASS  ──▶ eligible for human promotion
-  FAIL  ──▶ recorded; active generation remains untouched</code></pre>
+  PASS  ──▶ eligible for promotion
+  FAIL  ──▶ repaired (ruff's own autofix first, a model repair after), or recorded
+            and the active generation remains untouched</code></pre>
       </div>
 
       <p>
+        The hygiene check runs before any subprocess: a model that cannot invent an unreachable
+        module inside <code>src/evomesh/</code> — that check is a ratchet, described below — can
+        still write a debugging script at the repository root instead, and ruff sees it while
+        pyright and pytest do not. Both are failed here, deterministically, before the toolchain
+        ever starts.
+      </p>
+
+      <p>
         A candidate that was never validated is reported as <em>not validated</em> — which is not the
-        same as failed. Promotion stays a human decision, and promoting or discarding releases the
-        pipeline for the next objective.
+        same as failed. By default promotion is a human decision; with <code>evolution.auto_promote:
+        true</code> the verdict decides on its own — promote what validated, discard what did not —
+        and <code>auto_restart: true</code> restarts the mesh into a generation it just promoted, so
+        a landed change is running code rather than a fact in a database. Promoting or discarding,
+        by either hand, releases the pipeline for the next objective.
       </p>
 
       <p>
@@ -893,10 +906,11 @@ parameters:
       </p>
 
       <p>
-        The mutation itself is one JSON object carrying a complete file. A local reasoning model rarely
-        gets that right on the first attempt, so its reasoning is stripped before parsing, and one repair
-        pass quotes back exactly what could not be read. The request goes to the Evolver's own model:
-        assigning it a stronger one is a decision the pipeline honours.
+        The mutation itself is a harness job inside the candidate — the model reads, greps and edits
+        its way to the change rather than being asked to produce a whole file in one answer, so a
+        generation can touch more than one file. See <a href="#harness">The harness</a> for how that
+        job is run and what it is and is not allowed to do. The request goes to the Evolver's own
+        model: assigning it a stronger one is a decision the pipeline honours.
       </p>
 
       <div class="ev-code">
@@ -939,12 +953,26 @@ parameters:
                       └────────────┘</code></pre>
       </div>
 
+      <p>
+        A draft naming code that is not there is the failure this stage sees most on a small local
+        model, and it does not always need a second model to catch it: any backtick-quoted
+        <code>module.symbol</code> in the draft that names a real project module but a symbol that
+        module defines nowhere — top-level or nested — is rejected on the spot, sent back to draft,
+        and never reaches the review stage at all. The project map handed to the drafting model
+        already lists every dead module's real top-level names for the same reason: a model told
+        what <code>cycles.py</code> actually exports has less reason to invent
+        <code>scc_find_cycles</code>.
+      </p>
+
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimentum</span>
         <p>
           Off by default. No revision or decomposition-depth limit — the model alone decides when
           a draft is approved and when an item is minimal, so a planned generation can take a lot
-          longer than an unplanned one.
+          longer than an unplanned one. <code>harness.max_steps</code> and
+          <code>max_seconds</code> bound a single stage's job either way; raise them together if a
+          job keeps ending <code>capped</code> having written nothing at all rather than because it
+          answered wrongly.
         </p>
       </aside>
     </section>
@@ -1188,6 +1216,11 @@ models:
             <tr><td><code>runtime.prompt_chars</code></td><td>Ceiling on the whole assembled prompt. Everything else is trimmed to fit inside it.</td></tr>
             <tr><td><code>evolution.autonomous</code></td><td>When false the Evolver is visibly parked rather than silently idle.</td></tr>
             <tr><td><code>evolution.auto_validate</code></td><td>When false a candidate is proposed but never validated, and reported as such.</td></tr>
+            <tr><td><code>evolution.auto_plan</code></td><td>Off by default. Draft a plan, have it reviewed, and recursively split it into minimal work items before authoring anything, instead of one direct mutation.</td></tr>
+            <tr><td><code>evolution.auto_promote</code></td><td>Off by default. Let the verdict alone decide — promote what validated, discard what did not — instead of parking every candidate for a human.</td></tr>
+            <tr><td><code>evolution.auto_restart</code></td><td>Restart the mesh into a generation it just promoted, so a landed change is code this process is actually running rather than a fact sitting in a database.</td></tr>
+            <tr><td><code>evolution.max_repairs</code></td><td>How many times the Evolver may repair a failing candidate before it is discarded or handed to a human. Ruff's own autofix runs first and does not spend this budget.</td></tr>
+            <tr><td><code>harness.max_steps</code> / <code>max_seconds</code></td><td>The room one harness job gets. A job that keeps ending <code>capped</code> having written nothing at all — not answered wrongly, just cut off — needs both raised together, or time becomes the next cap.</td></tr>
             <tr><td><code>models.providers.*.timeout_seconds</code></td><td>How long one inference may take, per provider. Default 600. A 30B model on a busy GPU regularly needs minutes, and a ceiling that is too low reads to a human as a broken agent.</td></tr>
           </tbody>
         </table>
@@ -1317,9 +1350,11 @@ models:
         EvoMesh's answer is procedural. A mutation is made in a workspace that cannot touch the running
         tree. It is tested by the same suite a human contributor would face. The result is recorded
         whether it passed or failed, and a candidate that was never tested is never described as one that
-        failed. Promotion is a decision a person makes, and the previous generation stays whole so the
-        decision can be undone. The machine has the right to be wrong; it does not have the right to be
-        wrong in production.
+        failed. Promotion defaults to a decision a person makes; a mesh may instead be told to decide from
+        the verdict alone, but the previous generation stays whole either way, so the decision — whoever
+        made it — can be undone. The machine has the right to be wrong; it does not have the right to be
+        wrong in production, and running its own suite before anything lands is what keeps those the same
+        claim even when no person reviewed the diff.
       </p>
 
       <aside class="ev-callout ev-callout-principium">
@@ -1357,23 +1392,25 @@ models:
           scripts, and declarative custom tools called directly, both installable live with no restart;
           isolated candidate workspaces; the staged evolution pipeline with validation, self-repair and
           supervisor metadata; generations committed under the mesh's own identity, pushed, and
-          restarted into; the reachability check that fails a candidate adding code nothing runs;
-          Telegram as a second console; the harness, with tools that read, search, edit, write and (when
-          allowed) run a command inside a job root, driven by a worker off the agent's cycle;
-          generations authored through that harness; validation that runs in its own lane; CI;
-          and an automated test suite.
+          restarted into; the reachability check that fails a candidate adding code nothing runs, and
+          the matching check for a stray script at the repository root; the opt-in plan-first pipeline
+          — draft, review, recursive decomposition into a tree of minimal work items, and a mechanical
+          check that rejects a draft naming code that does not exist before a second model is ever
+          asked to — run end to end against a real local model; opt-in autonomous promotion and
+          restart, so a validated generation can land and the mesh come back up running it with no
+          human in the loop; Telegram as a second console; the harness, with tools that read, search,
+          edit, write and (when allowed) run a command inside a job root, driven by a worker off the
+          agent's cycle; generations authored through that harness; validation that runs in its own
+          lane; CI; and an automated test suite.
         </p>
       </aside>
 
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimental</span>
         <p>
-          Model-authored generations and the promotion workflow. The text protocol for models
-          without tool calling has been shown to <em>operate</em> on a 7B model rather than to be
-          used well by one, and only a 27B model has authored a generation end to end. The opt-in
-          plan-first pipeline — draft, review, and recursive decomposition into a tree of minimal
-          work items before any of them is authored — is unit-tested but has not yet run a
-          generation end to end against a real model.
+          Model-authored generations. The text protocol for models without tool calling has been
+          shown to <em>operate</em> on a 7B model rather than to be used well by one, and only a
+          27B model has authored a generation end to end unattended for hours at a time.
         </p>
       </aside>
 
@@ -1381,7 +1418,7 @@ models:
         <span class="ev-label">Not implemented</span>
         <p>
           A hardened OS sandbox, a web UI, PDF and OCR
-          skills, distributed runtime, cloud providers, and automatic production promotion.
+          skills, distributed runtime, and cloud providers.
         </p>
       </aside>
     </section>
