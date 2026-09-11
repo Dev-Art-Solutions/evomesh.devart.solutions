@@ -755,6 +755,73 @@ parameters:
         <span class="ev-label">Cautio</span>
         <p>Neither grants path access by itself. Capability and authority are separate on purpose.</p>
       </aside>
+
+      <h3 class="ev-subhead" id="agent-templates">Agent templates</h3>
+      <p>
+        A skill or a tool is one capability; an agent template is a whole agent, bundled with the
+        skills and tools it needs, installable and instantiable as one unit. One template is one
+        directory under <code>agent-templates/</code>: an <code>AGENT.md</code> naming identity,
+        purpose, provider, autonomy, goals, the skills and tools to bundle — and, optionally, a
+        <code>watch</code> command — beside its own <code>skills/*</code> and <code>tools/*</code>.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>agent-templates/trader/AGENT.md</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-yaml">---
+name: trader
+identity: Trader
+purpose: Watch an MT5 account and execute a strategy only when asked.
+autonomy: cyclic
+cycle_seconds: 120
+goals:
+  - text: Check account and open positions; note only what changed
+    recurring: true
+    interval_seconds: 300
+skills: [trading-strategy]
+tools: [mt5_query, mt5_signal]
+watch:
+  command: python "{template_dir}/scripts/watch_positions.py"
+  interval_seconds: 5
+---</code></pre>
+      </div>
+      <p>
+        <code>/agent-template install &lt;directory&gt;</code> copies the bundle in, the same one-step
+        mechanism <code>/skill install</code> and <code>/tool install</code> already have.
+        <code>/agent-template spawn &lt;template&gt; [name] [--telegram token]</code> installs whatever
+        skills and tools the bundle names into the live registries, grants harness access if the
+        template names tools, and brings up a real, running <code>AgentDefinition</code> — callable
+        more than once per template, so a second Trader with a different name and its own Telegram
+        bot is exactly <code>spawn</code> called again.
+      </p>
+      <p>
+        <code>watch</code> is the answer to state that moves on a scale of seconds — open orders,
+        account equity — where an agent's own cognition cycle (60s or more, because every tick costs
+        a whole model turn) would mean an LLM call every few seconds just to notice nothing changed.
+        A watcher never touches a model: it runs its command on its own short interval, and only a
+        non-empty line of output becomes an announcement. The <strong>Trader + NewsWatcher</strong>
+        pair ships as the worked example — a Trader watching an MT5 account through the local
+        <a href="https://github.com/Dev-Art-Solutions/MT5-Execution-Bridge" target="_blank" rel="noopener">MT5 Execution Bridge</a>
+        (which stays the sole risk authority; the watcher only reads <code>/api/account</code> and
+        <code>/api/positions</code>) alongside a NewsWatcher scanning financial RSS feeds for
+        human-chosen keywords, each with its own private Telegram bot, talking to each other over the
+        mesh's own bus.
+      </p>
+
+      <h3 class="ev-subhead" id="authoring-kit">Authoring with Claude Code or Codex</h3>
+      <p>
+        Writing a new template, skill, or tool by hand means holding a handful of parsing rules in
+        your head — what frontmatter is required, what <code>{tool_dir}</code>/<code>{template_dir}</code>
+        resolve against, and one genuinely sharp edge (a custom tool's optional parameters are
+        appended to its command only when actually supplied, so two or more of them can land in the
+        wrong argv position unless collapsed into one JSON payload). The repository ships that
+        knowledge as <code>.claude/skills/evomesh-agent-author/</code>,
+        <code>evomesh-skill-author/</code>, and <code>evomesh-tool-author/</code> — three Claude
+        Code skills, auto-discovered the moment this checkout is opened in Claude Code — and a
+        condensed <code>AGENTS.md</code> at the repository root for Codex or any other assistant
+        that reads that file by convention. Point either at a description of the agent you want and
+        it authors the <code>AGENT.md</code>, bundled skills and tools, and a watcher script if one
+        applies, then validates the draft against the same parser the mesh itself uses before
+        calling it done.
+      </p>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -1268,8 +1335,15 @@ models:
 /harness status               Queue, workers, and what the last jobs did
 /harness grant &lt;agent&gt; [path] Let an agent use the harness in a directory
 /harness revoke &lt;agent&gt;       Take it away
-/telegram status|test         Whether the bot is connected, and whether its token works
-/telegram allow|revoke &lt;id&gt;   Manage which chats may talk to the mesh
+/telegram status|test [agent]         Whether a bot is connected, and whether its token works
+/telegram allow|revoke &lt;id&gt; [agent]  Manage which chats may talk to it
+/telegram set &lt;agent&gt; &lt;token&gt;         Give one agent its own private Telegram bot
+/telegram unset &lt;agent&gt;               Take that agent's private bot away
+/agent-templates [query]      Search installed agent templates
+/agent-template show &lt;name&gt;    Preview a template's AGENT.md
+/agent-template install &lt;dir&gt;  A bundle: AGENT.md, plus skills/*, tools/*
+/agent-template spawn &lt;template&gt; [name] [--telegram token]
+                              Instantiate a template into a live, running agent
 /restart                      Restart the mesh into the code now in the tree
 /exit                         Stop EvoMesh</code></pre>
       </div>
@@ -1278,6 +1352,16 @@ models:
         Plain text goes to the selected agent. The console implements a channel contract, so further
         adapters can be added without touching agent logic. The local control channel listens only on
         <code>127.0.0.1:8765</code>.
+      </p>
+      <p>
+        Telegram is not only mesh-wide. Any agent can be given its own private bot — its own
+        BotFather token, its own allow-list, its own long-poll loop — with <code>/telegram set
+        &lt;agent&gt; &lt;token&gt;</code> or by spawning it from a template with <code>--telegram</code>.
+        A private bot's console is locked to that one agent: no <code>/chat</code>, no switching, a
+        human just talks to it directly. Its own goal announcements reach that private chat as well
+        as the mesh-wide one, but the mesh-wide bot never sees a private agent's chatter and vice
+        versa — separate offset and allow-list state per bot, so two bots polling the same
+        repository never collide.
       </p>
     </section>
 
@@ -1401,7 +1485,13 @@ models:
           human in the loop; Telegram as a second console; the harness, with tools that read, search,
           edit, write and (when allowed) run a command inside a job root, driven by a worker off the
           agent's cycle; generations authored through that harness; validation that runs in its own
-          lane; CI; and an automated test suite.
+          lane; CI; and an automated test suite; a private Telegram bot per agent, independent of the
+          mesh-wide one; agent templates — a whole agent bundled with its skills and tools under
+          <code>agent-templates/</code>, installable and instantiable live, more than once, with a
+          deterministic watcher command for state that moves too fast for a cognition cycle; and a
+          worked Trader + NewsWatcher trading suite built on that mechanism; and Claude Code skills
+          plus a Codex-readable <code>AGENTS.md</code>, shipped in the repository itself, for
+          authoring new templates, skills, and tools correctly on the first try.
         </p>
       </aside>
 
