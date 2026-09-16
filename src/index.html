@@ -273,6 +273,16 @@ uv run evomesh</code></pre>
         different provider and model per agent, and edit <code>evomesh.yaml</code> while stopped. Use
         <code>start-evomesh-console.bat</code> for the terminal.
       </p>
+
+      <h3 class="ev-subhead">Running unattended</h3>
+      <p>
+        Either launcher dies with its own window, which a machine that sleeps or a person who logs out
+        eventually does. <code>scripts/install-services.ps1</code> (elevated, once) registers EvoMesh and
+        its local Ollama as NSSM Windows services — auto-start at boot, no session required, and a crash
+        restarted on top of the mesh's own exit-code-86 restart contract. Headless supervision without
+        the service manager is <code>scripts/run-supervised.ps1</code>: the same restart loop, run from
+        any shell willing to stay open. <code>scripts/uninstall-services.ps1</code> reverses it.
+      </p>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -460,20 +470,30 @@ pyright, pytest and the smoke test; nothing is promoted yet.</code></pre>
         of whatever else is open, so a chat reply or another goal is never behind it in the queue.
       </p>
       <p>
-        <code>/goal notify &lt;agent&gt; &lt;id&gt; [on|off]</code> makes one goal push its progress
-        rather than wait to be asked — every step while it is on, not only the moment it finishes.
-        It reaches Telegram as it happens and, for a connection with no push of its own, is pulled
-        with <code>/notifications [since-id]</code>, the same cursor the desktop Control Center
-        polls on its existing health check.
+        <code>/goal notify &lt;agent&gt; &lt;id&gt; [on|off]</code> makes one goal push its own finish
+        rather than wait to be asked. It reaches Telegram as it happens and, for a connection with
+        no push of its own, is pulled with <code>/notifications [since-id]</code>, the same cursor
+        the desktop Control Center polls on its existing health check.
       </p>
       <aside class="ev-callout">
         <span class="ev-label">Nota</span>
         <p>
           Off by default, per goal. A one-shot goal's first claimed completion is a small model's
-          rubber stamp, not a real finish — it is reported as progress, and only a genuine
-          completion is announced as done.
+          rubber stamp, not a real finish — it is logged as progress, not announced, and only a
+          genuine completion (or an error) reaches the channel. Mid-plan steps are mechanics, not
+          the answer anyone asked a goal to produce, so they go to the log the same way, whether the
+          goal is one-shot or a recurring appointment ticking every thirty minutes.
         </p>
       </aside>
+      <p>
+        An agent's own volume is a separate knob from any one goal's notify flag —
+        <code>/agent mute &lt;agent&gt;</code> silences everything it announces unprompted, mesh-wide
+        channel and its own private bot alike, without touching whether it runs or what its goals are.
+        <code>/agent unmute &lt;agent&gt;</code> restores it, and <code>/agents</code> marks a muted
+        agent inline. Useful for an agent that is doing exactly what it should on a schedule short
+        enough to be noise for a human — NewsWatcher's feed sweep, say — where the fix is not turning
+        the goal off, only turning the narration down.
+      </p>
 
       <h3 id="architect">Agent Architect</h3>
       <p>
@@ -616,6 +636,17 @@ mesh.degraded:  all 5 agents are running             (environment)</code></pre>
           that is not a plan, the agent commits to a single-step plan and carries on.
         </p>
       </aside>
+
+      <p>
+        A goal on a schedule — a cron expression or an interval, not a bare <code>recurring</code> flag —
+        skips the planning call outright and commits its own description as that single step, every
+        occurrence. It is an appointment kept the same way each time, not an essay prompt a small model
+        re-answers differently on every pass; a paraphrase that drifted the step away from the verb
+        naming its own tool was exactly how a goal that says <em>"fetch the latest headlines with
+        news_fetch"</em> could keep concluding there was nothing to fetch, occurrence after occurrence,
+        without the tool ever being called. A bare <code>recurring</code> goal with no schedule still re-plans with the model
+        on every pass, on purpose — it is asking to be reasoned about again, not kept on an appointment.
+      </p>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -797,13 +828,24 @@ watch:
         account equity — where an agent's own cognition cycle (60s or more, because every tick costs
         a whole model turn) would mean an LLM call every few seconds just to notice nothing changed.
         A watcher never touches a model: it runs its command on its own short interval, and only a
-        non-empty line of output becomes an announcement. The <strong>Trader + NewsWatcher</strong>
-        pair ships as the worked example — a Trader watching an MT5 account through the local
+        non-empty line of output becomes an announcement. <strong>Trader</strong> and
+        <strong>NewsWatcher</strong> ship as the worked pair — a Trader watching an MT5 account through
+        the local
         <a href="https://github.com/Dev-Art-Solutions/MT5-Execution-Bridge" target="_blank" rel="noopener">MT5 Execution Bridge</a>
         (which stays the sole risk authority; the watcher only reads <code>/api/account</code> and
         <code>/api/positions</code>) alongside a NewsWatcher scanning financial RSS feeds for
         human-chosen keywords, each with its own private Telegram bot, talking to each other over the
         mesh's own bus.
+      </p>
+      <p>
+        <strong>NewsAnalyzer</strong> is the third, and a different shape on purpose: where NewsWatcher
+        is a deterministic keyword match, NewsAnalyzer is a scheduled cognitive goal that reads the same
+        kind of headlines and reasons about each one — which configured instrument it plausibly moves,
+        which direction, and how confident that judgment is — reporting only what clears a
+        human-set confidence bar in <code>config.json</code>, silence being the correct answer for
+        everything else. Both templates call the same <code>news_fetch</code> tool into one durable,
+        on-disk cache shared between them, so a headline that scrolls off a feed's own "latest" list
+        before either agent's next pass is not simply gone.
       </p>
 
       <h3 class="ev-subhead" id="authoring-kit">Authoring with Claude Code or Codex</h3>
