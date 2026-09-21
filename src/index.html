@@ -271,7 +271,10 @@ uv run evomesh</code></pre>
         the WinForms Control Center: start and stop the mesh, attach to an already-running local mesh
         over the localhost control channel, chat and issue slash commands, run Agent Architect, assign a
         different provider and model per agent, and edit <code>evomesh.yaml</code> while stopped. Use
-        <code>start-evomesh-console.bat</code> for the terminal.
+        <code>start-evomesh-console.bat</code> for the terminal. Only one Control Center runs per
+        checkout at a time — a second launch against the same data is refused with a short message
+        instead of opening a competing window, an OS-level lock held for the process's whole life, the
+        same protection the mesh process itself already has.
       </p>
 
       <h3 class="ev-subhead">Running unattended</h3>
@@ -787,6 +790,45 @@ parameters:
         <p>Neither grants path access by itself. Capability and authority are separate on purpose.</p>
       </aside>
 
+      <h3 class="ev-subhead" id="document-tools">Document tools</h3>
+      <p>
+        <code>document_read</code> and <code>document_write</code> ship at the repository root as two
+        more custom tools, over the same <code>TOOL.md</code> mechanism <code>check-site</code>
+        demonstrates — the first pair with a real payload contract: one JSON <code>request</code>
+        parameter each, because a custom tool's optional parameters are only appended to its command
+        when actually supplied, so two or more of them can land in the wrong position unless collapsed
+        into one JSON object the script parses itself.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>document_write request</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-json">{
+  "path": "reports/news.pdf",
+  "title": "Latest headlines",
+  "headers": ["Headline", "Published"],
+  "rows": [["...", "..."], ["...", "..."]]
+}</code></pre>
+      </div>
+      <p>
+        <code>document_read</code> extracts text or tabular content from a <code>.docx</code>,
+        <code>.pdf</code>, <code>.xlsx</code>/<code>.xlsm</code>, or <code>.csv</code> file, dispatched
+        by extension, and returns JSON — paragraphs and tables for a document, sheet names and rows for
+        a workbook. <code>document_write</code> goes the other way: a title, paragraphs and a table (or,
+        for a workbook, several named sheets) become a real file in one call. Both shell out to a
+        dedicated venv (<code>scripts/install-docs-env.ps1</code> / <code>.sh</code>) rather than the
+        project's own — <code>python-docx</code>, <code>openpyxl</code>, <code>pypdf</code> and
+        <code>reportlab</code> are exactly the dependency weight the runtime's own five-dependency rule
+        keeps out, the same reasoning that already puts Scrapling in a venv of its own.
+      </p>
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>
+          A file <code>document_write</code> just created is handed back the same way any tool-created
+          file is — named on its own line as <code>FILE: &lt;path&gt;</code> — so the Control Center
+          renders it as a clickable link and Telegram uploads it as a real document, not a description
+          of one.
+        </p>
+      </aside>
+
       <h3 class="ev-subhead" id="agent-templates">Agent templates</h3>
       <p>
         A skill or a tool is one capability; an agent template is a whole agent, bundled with the
@@ -864,6 +906,48 @@ watch:
         applies, then validates the draft against the same parser the mesh itself uses before
         calling it done.
       </p>
+
+      <h3 class="ev-subhead" id="self-authored-skills">Skills an agent writes for itself</h3>
+      <p>
+        A human or an assistant authors a skill ahead of time; <code>AgentDefinition.can_learn_skills</code>
+        (off by default — <code>/learn grant &lt;agent&gt;</code>, or a template's own
+        <code>learn_skills: true</code>, which grants harness access alongside it) lets a granted agent
+        write one for itself, mid-job, from two more harness tools: <code>learn_skill(name, description,
+        body)</code> creates or fully rewrites one, and <code>patch_skill(name, old_text, new_text)</code>
+        fixes one exact piece of a skill the same agent already wrote — the identical unique-match
+        contract the harness's own <code>edit</code> tool uses on a real file, cheaper than resending a
+        whole body for a small correction. Both reach <code>SkillRegistry.install()</code> directly,
+        rather than the harness's own <code>write</code>/<code>edit</code>, which stay confined to the
+        job root — a skill belongs in the mesh-wide <code>skills/</code> directory every agent reads
+        from, not one job's own workspace.
+      </p>
+      <p>
+        Both a reactive chat reply and a cyclic plan step get nudged toward the tool, but only
+        <em>after</em> actually using a procedure not already covered by one of the agent's own skills —
+        never for one only planned. Two safety nets sit underneath regardless of who is writing. An
+        agent may only overwrite a skill it wrote itself; a name collision with a human-curated skill is
+        refused, never silently replaced. And <code>scan_skill_content()</code> runs on every write to
+        <code>skills/</code> — a human's own <code>/skill install</code> included, not only an agent's —
+        refusing text that looks like a hardcoded credential or a known instruction-override phrase
+        before it ever reaches disk.
+      </p>
+      <p>
+        <code>harness.skill_write_approval: true</code> (off by default) adds a third: neither tool
+        writes straight to disk any more — the proposed content is staged instead, <code>/learn
+        review</code> lists what is waiting, and a human commits it with <code>/learn approve
+        &lt;n&gt;</code> (through the identical <code>install()</code> call, so nothing changes between
+        what was reviewed and what lands) or discards it untouched with <code>/learn reject
+        &lt;n&gt;</code>.
+      </p>
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimentum</span>
+        <p>
+          NewsWatcher ships with this on. Asked for the last ten headlines as a PDF — a request its own
+          hand-written <code>news-report-export</code> skill does not yet name — the next such shape it
+          is asked for can end up saved as a skill it wrote for itself, read the next time the same kind
+          of request arrives.
+        </p>
+      </aside>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -1198,6 +1282,26 @@ bdi.py:reconsider() decides, and it never calls a model.
         </p>
       </aside>
 
+      <h3 class="ev-subhead" id="harness-priority">A human's own question cuts the line</h3>
+      <p>
+        A direct chat question against a harness-granted agent does not just answer from memory: it
+        submits a real job — the same tool access a plan step already gets, closed here for a human's
+        own question instead. Submitted with <code>priority: true</code>, it is picked up before any
+        already-queued background job (the Evolver's own pipeline, another agent's own plan step) —
+        never ahead of one already running, since nothing here preempts a job mid-flight.
+        <code>HarnessQueue</code> orders on <code>(priority, job number)</code> rather than submission
+        order alone, and <code>/harness status</code> marks a priority job in its own listing so the
+        reason it jumped the line is visible, not just faster.
+      </p>
+      <p>
+        The job also carries up to the last three prior messages of the conversation, not only the one
+        that just arrived — a bare follow-up such as "send it as a PDF" names no content of its own at
+        all, and a job that cannot see "give me the last ten news" two messages back has nothing to
+        build one from. Found live: asked exactly that, an agent with no memory of the earlier question
+        first asked what the PDF should contain, then — still with no memory of "as a PDF" — simply
+        repeated the headlines as chat text again instead of ever reaching <code>document_write</code>.
+      </p>
+
       <h3 class="ev-subhead" id="harness-generations">How a generation is authored</h3>
       <p>
         The Environment Evolver no longer writes whole files. A generation is a harness job in the
@@ -1377,6 +1481,10 @@ models:
 /harness status               Queue, workers, and what the last jobs did
 /harness grant &lt;agent&gt; [path] Let an agent use the harness in a directory
 /harness revoke &lt;agent&gt;       Take it away
+/learn grant|revoke &lt;agent&gt;   Let it write its own skills as it works things out, or take that away
+/learn status &lt;agent&gt;         Whether it currently has this
+/learn review                 List learn_skill/patch_skill calls awaiting approval
+/learn approve|reject &lt;n&gt;     Commit or discard one
 /telegram status|test [agent]         Whether a bot is connected, and whether its token works
 /telegram allow|revoke &lt;id&gt; [agent]  Manage which chats may talk to it
 /telegram set &lt;agent&gt; &lt;token&gt;         Give one agent its own private Telegram bot
@@ -1531,9 +1639,17 @@ models:
           mesh-wide one; agent templates — a whole agent bundled with its skills and tools under
           <code>agent-templates/</code>, installable and instantiable live, more than once, with a
           deterministic watcher command for state that moves too fast for a cognition cycle; and a
-          worked Trader + NewsWatcher trading suite built on that mechanism; and Claude Code skills
+          worked Trader + NewsWatcher trading suite built on that mechanism; Claude Code skills
           plus a Codex-readable <code>AGENTS.md</code>, shipped in the repository itself, for
-          authoring new templates, skills, and tools correctly on the first try.
+          authoring new templates, skills, and tools correctly on the first try;
+          <code>document_read</code> and <code>document_write</code>, two more custom tools over a
+          dedicated docs venv for reading and generating <code>.docx</code>/<code>.pdf</code>/<code>.xlsx</code>/<code>.csv</code>;
+          an agent granted skill-authoring access writing and patching its own skills mid-job, every
+          write to <code>skills/</code> content-scanned for a hardcoded credential or an
+          instruction-override phrase first, with an optional human-review gate before either commits;
+          a reactive chat question given real tool access through the harness and priority in its
+          queue, carrying enough of the recent conversation to resolve a bare follow-up; and
+          single-instance protection for the desktop Control Center itself.
         </p>
       </aside>
 
@@ -1549,8 +1665,7 @@ models:
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Not implemented</span>
         <p>
-          A hardened OS sandbox, a web UI, PDF and OCR
-          skills, distributed runtime, and cloud providers.
+          A hardened OS sandbox, a web UI, OCR, distributed runtime, and cloud providers.
         </p>
       </aside>
     </section>
