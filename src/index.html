@@ -129,6 +129,7 @@
             <li><a href="#current-work">Asking an agent what it is working on</a></li>
             <li><a href="#cadence">Goals and their own cadence</a></li>
             <li><a href="#architect">Agent Architect</a></li>
+            <li><a href="#cooperation">Cooperation</a></li>
           </ul>
         </li>
         <li><a href="#bdi"><span class="ev-numeral">V</span><span>Cognition</span></a>
@@ -137,6 +138,10 @@
             <li><a href="#desires">Desires</a></li>
             <li><a href="#intentions">Intentions</a></li>
             <li><a href="#plans">Plans</a></li>
+            <li><a href="#goals">Goals as structure</a></li>
+            <li><a href="#rules">Rules</a></li>
+            <li><a href="#procedures">Learned procedures</a></li>
+            <li><a href="#selective-inference">Selective inference</a></li>
           </ul>
         </li>
         <li><a href="#memory"><span class="ev-numeral">VI</span><span>Memory</span></a></li>
@@ -147,7 +152,11 @@
         </li>
         <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
         <li><a href="#models"><span class="ev-numeral">IX</span><span>Local intelligence</span></a></li>
-        <li><a href="#evolution"><span class="ev-numeral">X</span><span>Evolution</span></a></li>
+        <li><a href="#evolution"><span class="ev-numeral">X</span><span>Evolution</span></a>
+          <ul>
+            <li><a href="#improvement-backlog">The improvement backlog</a></li>
+          </ul>
+        </li>
         <li><a href="#harness"><span class="ev-numeral">XI</span><span>The harness</span></a></li>
         <li><a href="#configuration"><span class="ev-numeral">XII</span><span>Configuration</span></a></li>
         <li><a href="#console"><span class="ev-numeral">XIII</span><span>Console</span></a></li>
@@ -532,6 +541,35 @@ evomesh&gt; /confirm</code></pre>
           to override a derived value when its answer is plausibly better.
         </p>
       </aside>
+
+      <h3 id="cooperation">Cooperation</h3>
+      <p>
+        Agents declare what they can do. System agents come with their capabilities; a template names
+        its own under <code>capabilities:</code>, or they are derived from the tools it bundles. A
+        declared capability is a routing fact, never a permission — it grants nothing.
+      </p>
+      <p>
+        Work moves between agents as a structured <em>work item</em> — an objective, its inputs,
+        expected outputs, success conditions and a budget — carried by performatives the runtime reads
+        without a model: <code>delegate</code>, <code>accept</code>, <code>reject</code>,
+        <code>result</code>, <code>failure</code>, <code>help_request</code>. Who gets it is a Contract
+        Net award: capability match, current load and past success. An accepted delegation becomes a
+        goal on the receiver, ahead of its standing work; finishing it sends a <code>result</code> back
+        to the requester and closes the work item, and failing it sends a <code>failure</code> and
+        spends budget.
+      </p>
+      <p>
+        When an agent stalls, the mesh asks for help on its own: a diagnosis is delegated to whoever
+        holds <code>health.verify</code> — the Guardian — which answers from runtime state with no
+        model call and sends the finding back. One request per stall, expired after an hour, and
+        cancelled if the stalled goal finishes after all.
+      </p>
+      <p>
+        Agents share a <em>blackboard</em> instead of telling each other things in conversation: every
+        revised belief becomes a fact with its source (<code>Guardian.mesh.degraded</code>), every file
+        a harness job writes becomes an artifact, and open work items are listed there too. It is
+        bounded, persisted across restarts, and part of every agent's view of the world.
+      </p>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -583,10 +621,11 @@ mesh.degraded:  all 5 agents are running             (environment)</code></pre>
 
       <h3 id="desires">Desires</h3>
       <p>
-        Desires are goals, ranked by priority. A behaviour can generate new ones from what it now
-        believes: when Guardian perceives that an agent stopped, it <em>wants</em> that investigated,
-        and the desire becomes a goal outranking its routine sweep. When the mesh recovers, the
-        investigation is discharged rather than left open forever.
+        Desires are goals, ranked by priority. New ones are derived from what an agent now believes,
+        by a rule rather than by a prompt: when Guardian perceives that an agent stopped, its
+        <code>investigate-degradation</code> rule fires on that belief <em>changing</em>, and the
+        resulting goal outranks its routine sweep. When the mesh recovers, the investigation is
+        discharged rather than left open forever.
       </p>
 
       <h3 id="intentions">Intentions</h3>
@@ -625,10 +664,11 @@ mesh.degraded:  all 5 agents are running             (environment)</code></pre>
 
       <h3 id="plans">Plans</h3>
       <p>
-        Means-ends reasoning is a library lookup first and a model call only as a fallback. Guardian,
-        Evaluator, and the Evolver run entirely from their plan libraries, so the mesh keeps reasoning
-        with no model reachable at all. A generic agent asks the model once to break its goal into two
-        to four steps, then spends the following cycles executing them.
+        Means-ends reasoning is a library lookup first, then a procedure the agent learned itself, and
+        a model call only as the last fallback. Guardian, Evaluator, and the Evolver run entirely from
+        their plan libraries, so the mesh keeps reasoning with no model reachable at all. A generic
+        agent asks the model once to break a new goal into two to four steps, then spends the following
+        cycles executing them.
       </p>
 
       <aside class="ev-callout ev-callout-principium">
@@ -650,6 +690,77 @@ mesh.degraded:  all 5 agents are running             (environment)</code></pre>
         without the tool ever being called. A bare <code>recurring</code> goal with no schedule still re-plans with the model
         on every pass, on purpose — it is asking to be reasoned about again, not kept on an appointment.
       </p>
+
+      <h3 id="goals">Goals as structure</h3>
+      <p>
+        A goal is more than a sentence. It can depend on other goals and waits, <em>blocked</em>, until
+        they are done; it can carry explicit success and failure predicates — a belief holding a value,
+        an artifact existing, a validator passing, a human approving — so a plan that ran out of steps
+        does not close a goal whose predicate is still false. Selection is a transparent utility score
+        in which priority stays dominant, and every weight is a named number rather than prompt
+        wording. Failures have a retry policy with backoff and a budget, and a goal nobody has touched
+        for an hour shows up in <code>/status</code> as <code>stale_goals</code>.
+      </p>
+      <p>
+        Repeated failure is detected by code, not by a model reading its own transcript: the same
+        failure three times, or four cycles with no new step, fact or artifact, is a stall — signalled
+        once, on the cycle that crosses the threshold.
+      </p>
+
+      <h3 id="rules">Rules</h3>
+      <p>
+        After belief revision and before deliberation, a small forward-chaining rule engine runs to a
+        fixed point, each rule at most once per cycle and never more than a bounded number in total. A
+        rule tests beliefs, goals and events — including a <code>belief_changed</code> event for every
+        belief revised this cycle, so a rule can react to a change rather than to a state — and may
+        assert a belief, propose a goal, emit an event onto the mesh bus, or request an action
+        (<code>announce</code>, <code>wake</code>). None of it calls a model.
+      </p>
+      <p>
+        Rules are data. A template declares them under <code>rules:</code>, <code>/rules</code> adds,
+        removes and lists them on a live agent, and a malformed one is refused where it is declared
+        rather than silently never firing. <code>{belief:&lt;key&gt;}</code> in a proposed goal or an
+        announcement is filled from the agent's beliefs when the rule fires.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>agent-templates/…/AGENT.md</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-yaml">rules:
+  - name: equity alarm
+    when:
+      - {source: belief, key: account.drawdown_pct, operator: greater_or_equal, value: 5}
+    then:
+      - {kind: propose_goal, key: risk, value: "Review open positions: {belief:account.summary}"}
+      - {kind: request_action, key: announce, value: "Drawdown past 5%"}</code></pre>
+      </div>
+
+      <h3 id="procedures">Learned procedures</h3>
+      <p>
+        Every finished plan the model authored is kept as an execution trace, succeeded or failed, in
+        the agent's persisted mind. When the same plan for the same goal has succeeded three times
+        with no failure, it becomes a <em>procedure</em>, and the next time that goal comes up the agent
+        commits to the procedure instead of asking the model to plan again — the planning call is
+        simply not made. A human may approve a repeated plan sooner with
+        <code>/procedures &lt;agent&gt; approve &lt;pattern&gt;</code>; a procedure that starts failing
+        as often as half its successes is forgotten and the goal goes back to being planned.
+      </p>
+
+      <h3 id="selective-inference">Selective inference</h3>
+      <p>
+        Every model call goes through one gateway and carries a reason — no plan matched, a step needs
+        reasoning, a tool must be selected, memory is over budget — together with the agent, goal and
+        task it serves and the sizes going in and out. <code>/status</code> reports the totals by
+        service and by reason, next to how many goals finished without a single model call. It is how
+        the claim "the model is called only for genuinely novel work" stops being a claim.
+      </p>
+
+      <aside class="ev-callout ev-callout-principium">
+        <span class="ev-label">Principium</span>
+        <p>
+          Deterministic reasoning, commitments, reusable procedures and cooperation handle what the
+          system already knows; a small model is invoked for what it does not.
+        </p>
+      </aside>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -671,6 +782,12 @@ mesh.degraded:  all 5 agents are running             (environment)</code></pre>
         Both are plain Markdown on purpose. You can read them, edit them, or delete them while the mesh
         is running, and the agent picks the change up on its next cycle. A mind you cannot inspect is a
         mind you cannot debug.
+      </p>
+      <p>
+        Beside the two files, the agent's persisted mind keeps its structured memory apart by kind:
+        beliefs (what it holds true now), bounded episodes (what happened), execution traces and the
+        procedures learned from them (how it did things that worked). What agents know
+        <em>together</em> lives on the <a href="#cooperation">blackboard</a>, not in any one of them.
       </p>
 
       <div class="ev-code">
@@ -1112,8 +1229,51 @@ watch:
 /evolution start "make the console faster"
 /evolution promote 3
 /evolution discard
-/evolution rollback</code></pre>
+/evolution rollback
+/improvements</code></pre>
       </div>
+
+      <h3 id="improvement-backlog">The improvement backlog</h3>
+      <p>
+        What the Evolver works on is not its own idea of what might be nice. Every generation it opens
+        starts from an <em>improvement</em> in a persisted backlog, and every improvement starts from
+        evidence: a traceback the mesh logged, a red test suite on the live tree, an item a human wrote
+        in <code>docs/evolution/improvements.md</code>, a runtime failure that keeps recurring, or a
+        problem a harness job noticed while doing something else and reported on a
+        <code>PROPOSAL:</code> line instead of widening its own change. Triage rejects what is the
+        machine's fault rather than the code's — a model endpoint returning 404 is not a bug to fix —
+        and waits for a recurrence before anything a single event suggested becomes work.
+      </p>
+      <p>
+        Improvements are ranked by an explicit score — impact, urgency, confidence, recurrence and
+        strategic value over effort and risk — and worked one at a time, never picked at random. Each
+        generation is a budgeted work item routed by capability; a read-only review judges the change
+        against its objective and the deterministic suite judges everything else, and neither verdict
+        alone is enough. A work item that exhausts its budget ends as <em>needs human</em>, announced
+        once, instead of consuming generations forever.
+      </p>
+      <p>
+        Landing is not the end of it. A promoted improvement is <em>verifying</em> until its evidence
+        has stayed gone for its observation window — a fixed traceback must not come back for three
+        opens — and only then <em>verified</em>; if the evidence returns it is marked
+        <em>ineffective</em>, and a verified improvement whose problem comes back is reopened. Green tests
+        are not taken as proof that a change solved the problem it was for.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/improvements</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">rejected: 1, triaged: 1, verified: 1
+  62b9c630e2 [verified] score 4.00 Compute each agent's stale goals once in `Environment.status`
+  3ea7643065 [triaged] score 3.00 Prevent recurring agent stalled -- seen 1 time(s); ready at 3
+  da50f70a6c [rejected] score 1.00 Prevent recurring task failed -- environmental, not a code problem</code></pre>
+      </div>
+
+      <p>
+        <code>/improvements depend &lt;id&gt; &lt;on-id&gt;</code> makes one wait until another is
+        verified (a dependency cycle is refused), <code>epic &lt;id&gt; &lt;name&gt;</code> groups
+        improvements and reports each epic's progress, and <code>release &lt;id&gt;</code> hands a
+        parked one back with a fresh budget.
+      </p>
 
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimentum</span>
@@ -1467,6 +1627,12 @@ models:
 /goal add &lt;agent&gt; "&lt;text&gt;" [priority]
 /goal done|drop &lt;agent&gt; &lt;goal-id&gt;
 /memory &lt;agent&gt;               Show the agent's memory.md
+/procedures &lt;agent&gt; [approve &lt;pattern&gt;|forget &lt;name&gt;]
+                              Learned procedures and repeated plans; approve one early
+/rules &lt;agent&gt; [add '&lt;json&gt;'|remove &lt;name&gt;|clear]
+                              The agent's own forward-chaining rules
+/improvements [release &lt;id&gt;|depend &lt;id&gt; &lt;on-id&gt;|epic &lt;id&gt; &lt;name&gt;]
+                              The evidence-backed backlog steering evolution
 /context &lt;agent&gt;|world        Show context.md
 /grant &lt;agent&gt; &lt;path&gt; &lt;mode&gt;  Grant read or write access
 /revoke &lt;agent&gt; &lt;path&gt;        Revoke access
@@ -1648,8 +1814,16 @@ models:
           write to <code>skills/</code> content-scanned for a hardcoded credential or an
           instruction-override phrase first, with an optional human-review gate before either commits;
           a reactive chat question given real tool access through the harness and priority in its
-          queue, carrying enough of the recent conversation to resolve a bare follow-up; and
-          single-instance protection for the desktop Control Center itself.
+          queue, carrying enough of the recent conversation to resolve a bare follow-up;
+          single-instance protection for the desktop Control Center itself; and, since
+          <code>v0.3.0-alpha.1</code>, the cognitive runtime — structured goals with dependencies,
+          predicates, utility and retry budgets; a bounded rule engine fed by mesh events and configurable
+          per agent; procedures learned from repeated successful plans and reused without a planning
+          call; every model call carrying its reason, with totals in <code>/status</code>; capability
+          routing, structured delegation with results that come back, deterministic stall diagnosis by
+          the Guardian, and a persisted shared blackboard; and self-improvement driven by an
+          evidence-backed, prioritized backlog whose improvements are measured after deploy and marked
+          verified or ineffective.
         </p>
       </aside>
 
@@ -1665,7 +1839,7 @@ models:
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Not implemented</span>
         <p>
-          A hardened OS sandbox, a web UI, OCR, distributed runtime, and cloud providers.
+          A hardened OS sandbox, a web UI, OCR, and a distributed runtime.
         </p>
       </aside>
     </section>
@@ -1680,8 +1854,10 @@ models:
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        Longer-term memory with retrieval; a local web channel; benchmark-based promotion; a Control
-        Center view of the job queue; and stronger process isolation.
+        Longer-term memory with retrieval; a repeatable benchmark of model calls and context size on
+        known versus novel work; scouts that anchor proposals in real code more reliably, so the
+        backlog stays stocked without a human; a local web channel; a Control Center view of the job
+        queue and the backlog; and stronger process isolation.
       </p>
       <h3 class="ev-subhead">Built with</h3>
       <p>
