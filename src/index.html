@@ -142,6 +142,7 @@
             <li><a href="#rules">Rules</a></li>
             <li><a href="#procedures">Learned procedures</a></li>
             <li><a href="#selective-inference">Selective inference</a></li>
+            <li><a href="#typed-procedures">Typed procedures</a></li>
           </ul>
         </li>
         <li><a href="#memory"><span class="ev-numeral">VI</span><span>Memory</span></a></li>
@@ -754,6 +755,62 @@ mesh.degraded:  all 5 agents are running             (environment)</code></pre>
         the claim "the model is called only for genuinely novel work" stops being a claim.
       </p>
 
+      <h3 id="typed-procedures">Typed procedures</h3>
+      <p>
+        For work the mesh already knows how to do, an agent does not plan with a model at all. It runs a
+        <em>typed procedure</em>: a small validated graph with seven step kinds (tool, cognitive, branch,
+        validate, delegate, await, complete), values that are bound rather than templated, and strictly
+        typed predicates where <code>unknown</code> fails instead of guessing. A definition is validated
+        before it can run. Unknown fields, cycles, a result used after a merge that only one branch
+        produced, an undeclared capability or an external effect are all refused up front. A revision is
+        immutable and approved by digest, by a human, never by a model.
+      </p>
+      <p>
+        Each cycle, an admitted procedure for the goal's kind comes before recipes, learned plans and
+        model planning. Only a genuine no-match falls back to the model. A denied permission, an
+        unapproved revision or an exhausted budget fails the goal instead of letting a model route around
+        it. The goal is done when its own success conditions hold against the execution's evidence
+        (validators, receipts), not when the graph runs out of steps.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>procedures/local_json_snapshot.json (abridged)</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">read_source    tool      core.json_read   path  = goal.parameters.source
+write_snapshot tool      core.json_write  path  = goal.parameters.destination
+                                          value = result.read_source.value
+check_snapshot validate  artifact_matches_source (this occurrence's read, this run's receipt)
+done           complete  { artifact_id, digest }                     -- 0 model calls</code></pre>
+      </div>
+      <p>
+        Every effect is journaled under a logical key before it runs, and every state change is a
+        compare-and-set. After a crash, a write that happened is reconciled from its receipt rather than
+        repeated; a write that did not happen is retried; an effect nobody can prove waits for an
+        operator's <code>recheck</code>, <code>not_applied</code> or <code>fail</code>. That includes a
+        process killed mid-write. Delegation is a durable child work item routed by capability to a
+        running peer that may read the same files, and a requester cannot hand away a read it does not
+        have. Waits re-read durable state, so an event that arrived early is not lost and waiting never
+        calls a model.
+      </p>
+      <p>
+        Procedures can also be <em>learned</em>, conservatively. Model-directed harness work gets
+        contract-backed <code>json_read</code>/<code>json_write</code> tools whose calls are recorded
+        against the goal they served. Three verified occurrences plus an operator's binding map (equal
+        values are never taken as data lineage) compile into a candidate. The candidate is replayed on a
+        held-out input and promoted only by a human. In the test run, three model-directed copies at 3
+        calls each became a procedure whose next run took none.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/typed</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">Typed execution is enabled.
+local_json_snapshot@1 promoted source=shipped by operator:iliya kinds=local_json_snapshot
+report_comparison@1 promoted source=shipped by operator:iliya kinds=report_comparison</code></pre>
+      </div>
+      <p>
+        Measured at the architecture-closure commit: the snapshot workflow completes through a normal
+        agent with <strong>0</strong> model calls; the report comparison, whose one semantic step is a
+        schema-bound model call with every cited evidence id checked, uses exactly <strong>1</strong>.
+        On a local ornith-1.5:35b at 4k and 32k context, 18 of 18 runs of it completed on the first call.
+      </p>
+
       <aside class="ev-callout ev-callout-principium">
         <span class="ev-label">Principium</span>
         <p>
@@ -973,6 +1030,12 @@ watch:
   interval_seconds: 5
 ---</code></pre>
       </div>
+      <p>
+        A template goal can be typed: a <code>kind</code>, its <code>parameters</code> and its
+        <code>success_conditions</code>. Two shipped templates use this. <code>json-archivist</code>
+        snapshots a JSON file every hour with no model call, and <code>report-analyst</code> compares two
+        reports daily with exactly one.
+      </p>
       <p>
         <code>/agent-template install &lt;directory&gt;</code> copies the bundle in, the same one-step
         mechanism <code>/skill install</code> and <code>/tool install</code> already have.
@@ -1253,11 +1316,27 @@ watch:
         once, instead of consuming generations forever.
       </p>
       <p>
-        Landing is not the end of it. A promoted improvement is <em>verifying</em> until its evidence
-        has stayed gone for its observation window — a fixed traceback must not come back for three
-        opens — and only then <em>verified</em>; if the evidence returns it is marked
-        <em>ineffective</em>, and a verified improvement whose problem comes back is reopened. Green tests
-        are not taken as proof that a change solved the problem it was for.
+        Landing is not the end of it. A promoted improvement is <em>verifying</em> until real
+        observations show its evidence is gone. The live tree's suite counts once per tree state, and the
+        runtime log counts only when the mesh actually ran since the last reading. The same reading is
+        counted once. An unhealthy observer, or one that processed nothing eligible, verifies nothing, and
+        the backlog says why. Work no observer can measure, such as a feature a human asked for, waits
+        for <code>/improvements verify &lt;id&gt; &lt;reason&gt;</code>. If the evidence returns the
+        improvement is <em>ineffective</em>, and a verified one whose problem comes back is reopened.
+        Green tests are not taken as proof that a change solved the problem it was for.
+      </p>
+      <p>
+        Verdicts are bound to what they judged. Review and validation record the candidate's revision,
+        and a new edit invalidates the old review. A cancelled required task is not success. A candidate
+        that touches the rules that admit, verify or promote work, or the acceptance tests that judge it,
+        fails validation and needs a human, so no candidate can pass by rewriting its own oracle. Work is
+        started, inspected and cancelled through a <code>WorkExecutor</code> seam whose handle survives a
+        restart. The generation pipeline is one executor behind it.
+      </p>
+      <p>
+        With nothing eligible, the Evolver is <em>idle</em>: no scout, no dead-code "wire or delete"
+        busywork, no model call. <code>evolution.scout_when_idle: true</code> brings the exploring
+        behaviour back.
       </p>
 
       <div class="ev-code">
@@ -1593,6 +1672,9 @@ models:
             <tr><td><code>evolution.auto_promote</code></td><td>Off by default. Let the verdict alone decide — promote what validated, discard what did not — instead of parking every candidate for a human.</td></tr>
             <tr><td><code>evolution.auto_restart</code></td><td>Restart the mesh into a generation it just promoted, so a landed change is code this process is actually running rather than a fact sitting in a database.</td></tr>
             <tr><td><code>evolution.max_repairs</code></td><td>How many times the Evolver may repair a failing candidate before it is discarded or handed to a human. Ruff's own autofix runs first and does not spend this budget.</td></tr>
+            <tr><td><code>evolution.scout_when_idle</code></td><td>Off by default. With no eligible, evidenced improvement the Evolver is idle and calls no model; on, it scouts and works the dead-module backlog instead.</td></tr>
+            <tr><td><code>procedures.enabled</code></td><td>The emergency stop for typed procedures. Off, no new typed execution starts and running ones still settle; goals fall back to the legacy path. <code>/typed disable</code> does the same until restart.</td></tr>
+            <tr><td><code>procedures.collect_traces</code></td><td>Offer agents' harness jobs the contract-backed json tools and record verified occurrences as learning traces. Promotion is always manual.</td></tr>
             <tr><td><code>harness.max_steps</code> / <code>max_seconds</code></td><td>The room one harness job gets. A job that keeps ending <code>capped</code> having written nothing at all — not answered wrongly, just cut off — needs both raised together, or time becomes the next cap.</td></tr>
             <tr><td><code>models.providers.*.timeout_seconds</code></td><td>How long one inference may take, per provider. Default 600. A 30B model on a busy GPU regularly needs minutes, and a ceiling that is too low reads to a human as a broken agent.</td></tr>
           </tbody>
@@ -1631,8 +1713,11 @@ models:
                               Learned procedures and repeated plans; approve one early
 /rules &lt;agent&gt; [add '&lt;json&gt;'|remove &lt;name&gt;|clear]
                               The agent's own forward-chaining rules
-/improvements [release &lt;id&gt;|depend &lt;id&gt; &lt;on-id&gt;|epic &lt;id&gt; &lt;name&gt;]
+/improvements [release &lt;id&gt;|depend &lt;id&gt; &lt;on-id&gt;|epic &lt;id&gt; &lt;name&gt;|verify &lt;id&gt; &lt;reason&gt;]
                               The evidence-backed backlog steering evolution
+/typed [list|show|validate|approve|degrade|retire|explain|executions|execution|
+        cancel|pause|resume|reconcile|disable|enable]
+                              Typed procedures: admission, executions, reconciliation
 /context &lt;agent&gt;|world        Show context.md
 /grant &lt;agent&gt; &lt;path&gt; &lt;mode&gt;  Grant read or write access
 /revoke &lt;agent&gt; &lt;path&gt;        Revoke access
@@ -1823,7 +1908,13 @@ models:
           routing, structured delegation with results that come back, deterministic stall diagnosis by
           the Guardian, and a persisted shared blackboard; and self-improvement driven by an
           evidence-backed, prioritized backlog whose improvements are measured after deploy and marked
-          verified or ineffective.
+          verified or ineffective; and, since <code>v0.4.0-alpha.1</code>, the closed architecture —
+          typed procedures with validated, digest-approved revisions, a durable operation journal with
+          crash reconciliation, structured delegation and durable waits, conservative learning from
+          real tool traces with manual promotion, operator controls under <code>/typed</code>, an idle
+          Evolver on an empty backlog, and improvements verified only by real observations. Accepted
+          against all eight core gates, 60 acceptance tests and 12 benchmarks, and validated on a local
+          model.
         </p>
       </aside>
 
@@ -1854,10 +1945,12 @@ models:
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        Longer-term memory with retrieval; a repeatable benchmark of model calls and context size on
-        known versus novel work; scouts that anchor proposals in real code more reliably, so the
-        backlog stays stocked without a human; a local web channel; a Control Center view of the job
-        queue and the backlog; and stronger process isolation.
+        The core architecture is frozen as of <code>v0.4.0-alpha.1</code>. What comes next is use,
+        not another redesign: bounded real workflows run with a human watching, with new adapters,
+        checks, procedures and templates added through the stable extension points. Architecture work
+        reopens only for a reproducible defect, a measured bottleneck, or a real product need that does
+        not fit. Beyond that: longer-term memory with retrieval, a local web channel, a Control Center
+        view of the job queue, the backlog and typed executions, and stronger process isolation.
       </p>
       <h3 class="ev-subhead">Built with</h3>
       <p>
