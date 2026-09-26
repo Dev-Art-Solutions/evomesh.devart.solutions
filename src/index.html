@@ -156,6 +156,7 @@
         <li><a href="#evolution"><span class="ev-numeral">X</span><span>Evolution</span></a>
           <ul>
             <li><a href="#improvement-backlog">The improvement backlog</a></li>
+            <li><a href="#ideas">Ideas</a></li>
           </ul>
         </li>
         <li><a href="#harness"><span class="ev-numeral">XI</span><span>The harness</span></a></li>
@@ -785,10 +786,22 @@ done           complete  { artifact_id, digest }                     -- 0 model 
         compare-and-set. After a crash, a write that happened is reconciled from its receipt rather than
         repeated; a write that did not happen is retried; an effect nobody can prove waits for an
         operator's <code>recheck</code>, <code>not_applied</code> or <code>fail</code>. That includes a
-        process killed mid-write. Delegation is a durable child work item routed by capability to a
-        running peer that may read the same files, and a requester cannot hand away a read it does not
-        have. Waits re-read durable state, so an event that arrived early is not lost and waiting never
-        calls a model.
+        process killed mid-write. Cancellation is a durable intent: an operator who cancels while a write
+        is in flight gets the write's receipt kept and no later step run, even if the write is reconciled
+        after a restart.
+      </p>
+      <p>
+        Delegation is a durable child work item routed by capability, and the child runs under what the
+        parent allocated. That means its model calls (shared with anything it delegates further), a
+        deadline never later than the parent's, and a bounded number of attempts; a restart grants none
+        of them anew. A file is resolved once, in the requester's scope, to one absolute path the child
+        must reach under its own root and grant. A <code>doc.json</code> in two roots is two files, and
+        the child may touch only what the task names. Bounded work never falls back to model planning:
+        with no admitted procedure it fails as <code>unsupported_execution</code>. A replayed delivery
+        creates nothing, and accepting the work is one transaction with its goal. The parent completes
+        only when the child's output meets the contract, including any validator the contract requires
+        the child to have passed. Waits re-read durable state, so an event that arrived early is not lost
+        and waiting never calls a model.
       </p>
       <p>
         Procedures can also be <em>learned</em>, conservatively. Model-directed harness work gets
@@ -1300,10 +1313,10 @@ watch:
       <p>
         What the Evolver works on is not its own idea of what might be nice. Every generation it opens
         starts from an <em>improvement</em> in a persisted backlog, and every improvement starts from
-        evidence: a traceback the mesh logged, a red test suite on the live tree, an item a human wrote
-        in <code>docs/evolution/improvements.md</code>, a runtime failure that keeps recurring, or a
-        problem a harness job noticed while doing something else and reported on a
-        <code>PROPOSAL:</code> line instead of widening its own change. Triage rejects what is the
+        evidence: a traceback the mesh logged, a red test suite on the live tree, a runtime failure that
+        keeps recurring, or an item in <code>docs/evolution/improvements.md</code>. Items reach that file
+        in only two ways: a human writes one, or a human approves an idea the
+        <a href="#ideas">Idea Scout</a> proposed. Triage rejects what is the
         machine's fault rather than the code's — a model endpoint returning 404 is not a bug to fix —
         and waits for a recurrence before anything a single event suggested becomes work.
       </p>
@@ -1317,11 +1330,12 @@ watch:
       </p>
       <p>
         Landing is not the end of it. A promoted improvement is <em>verifying</em> until real
-        observations show its evidence is gone. The live tree's suite counts once per tree state, and the
-        runtime log counts only when the mesh actually ran since the last reading. The same reading is
-        counted once. An unhealthy observer, or one that processed nothing eligible, verifies nothing, and
-        the backlog says why. Work no observer can measure, such as a feature a human asked for, waits
-        for <code>/improvements verify &lt;id&gt; &lt;reason&gt;</code>. If the evidence returns the
+        observations show its evidence is gone. The live tree's suite counts once per tree state. The
+        runtime log speaks only for a fault it can still see: it shows that the mesh ran, not that the
+        repaired path did, so a fault gone quiet proves nothing. The same reading is counted once. An
+        unhealthy observer, or one that processed nothing eligible, verifies nothing, and the backlog says
+        why. A fixed runtime fault, and work no observer can measure, such as a feature a human asked
+        for, waits for <code>/improvements verify &lt;id&gt; &lt;reason&gt;</code>. If the evidence returns the
         improvement is <em>ineffective</em>, and a verified one whose problem comes back is reopened.
         Green tests are not taken as proof that a change solved the problem it was for.
       </p>
@@ -1336,7 +1350,7 @@ watch:
       <p>
         With nothing eligible, the Evolver is <em>idle</em>: no scout, no dead-code "wire or delete"
         busywork, no model call. <code>evolution.scout_when_idle: true</code> brings the exploring
-        behaviour back.
+        behaviour back, except while the Idea Scout runs: finding new work is its job.
       </p>
 
       <div class="ev-code">
@@ -1353,6 +1367,50 @@ watch:
         improvements and reports each epic's progress, and <code>release &lt;id&gt;</code> hands a
         parked one back with a fresh budget.
       </p>
+
+      <h3 id="ideas">Ideas: the only way into the backlog</h3>
+      <p>
+        An item in <code>improvements.md</code> is work the Evolver will spend generations on, so no model
+        puts one there on its own say-so. One system agent, the <em>Idea Scout</em>, keeps
+        <code>workspace/ideas.md</code>. It reads the code one module at a time, one read-only job per
+        idea. Those jobs get only read, grep and ls, never the shell. It writes down one item in the
+        backlog's own shape: a where-and-why, a line quoted from the code, and anchored steps. Every
+        idea goes through the same vetting a scout item gets. An invented quote, a function that does
+        not exist or a missing step, and the idea is dropped. It stops once ten ideas wait for a human,
+        and it yields the harness to any queued work.
+      </p>
+      <p>
+        Everything else goes through it too. Send it a rough idea with <code>/idea &lt;text&gt;</code> or
+        a plain message, and it reads the code the idea touches and rewrites it into that shape. An idea
+        from a human is never dropped: if the rewrite fails vetting, it is filed without steps for a plan
+        generation to split. Another agent's <code>PROPOSAL:</code> line, or the Evolver's own scouting,
+        arrives as a <code>PROPOSE</code> message, never as an edit.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>Telegram</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">💡 Idea #1 (from human)
+Cancel the running baseline on /restart instead of waiting for it
+...
+👍 or a reply 'да' moves it to improvements.md, 👎 rejects it
+(/idea approve 1 | /idea reject 1).</code></pre>
+      </div>
+      <p>
+        Each idea is announced with its number. <code>/idea approve &lt;n&gt;</code>, a reply saying it is
+        good, or a thumbs-up on its Telegram message moves that one idea into the backlog and commits that
+        one file, so the tree the Evolver promotes over stays clean. <code>/idea reject &lt;n&gt;</code> or
+        a thumbs-down sets it aside for good. The decision is read from words and an emoji, never
+        interpreted by a model. <code>/idea now &lt;text&gt;</code> skips the review for your own idea
+        once it is rewritten, and <code>/ideas</code> lists what waits.
+      </p>
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">Cautio</span>
+        <p>
+          The Scout never approves its own ideas, however long nobody answers. A backlog that fills
+          itself is exactly what the vetting exists to prevent. In a Telegram group, reactions only
+          reach a bot that is an administrator there. Replies and <code>/idea approve</code> work
+          without that.
+        </p>
+      </aside>
 
       <aside class="ev-callout ev-callout-experimentum">
         <span class="ev-label">Experimentum</span>
@@ -1673,6 +1731,8 @@ models:
             <tr><td><code>evolution.auto_restart</code></td><td>Restart the mesh into a generation it just promoted, so a landed change is code this process is actually running rather than a fact sitting in a database.</td></tr>
             <tr><td><code>evolution.max_repairs</code></td><td>How many times the Evolver may repair a failing candidate before it is discarded or handed to a human. Ruff's own autofix runs first and does not spend this budget.</td></tr>
             <tr><td><code>evolution.scout_when_idle</code></td><td>Off by default. With no eligible, evidenced improvement the Evolver is idle and calls no model; on, it scouts and works the dead-module backlog instead.</td></tr>
+            <tr><td><code>ideas.enabled</code></td><td>Let the Idea Scout look for ideas in the code on its own. What humans and other agents send it is written up either way.</td></tr>
+            <tr><td><code>ideas.max_pending</code></td><td>How many unreviewed ideas may wait (default 10) before the Scout stops looking and waits for a human.</td></tr>
             <tr><td><code>procedures.enabled</code></td><td>The emergency stop for typed procedures. Off, no new typed execution starts and running ones still settle; goals fall back to the legacy path. <code>/typed disable</code> does the same until restart.</td></tr>
             <tr><td><code>procedures.collect_traces</code></td><td>Offer agents' harness jobs the contract-backed json tools and record verified occurrences as learning traces. Promotion is always manual.</td></tr>
             <tr><td><code>harness.max_steps</code> / <code>max_seconds</code></td><td>The room one harness job gets. A job that keeps ending <code>capped</code> having written nothing at all — not answered wrongly, just cut off — needs both raised together, or time becomes the next cap.</td></tr>
@@ -1715,6 +1775,9 @@ models:
                               The agent's own forward-chaining rules
 /improvements [release &lt;id&gt;|depend &lt;id&gt; &lt;on-id&gt;|epic &lt;id&gt; &lt;name&gt;|verify &lt;id&gt; &lt;reason&gt;]
                               The evidence-backed backlog steering evolution
+/ideas                        Ideas waiting for your review
+/idea approve|reject &lt;n&gt; [why]  Move one idea to improvements.md, or set it aside
+/idea [now] &lt;text&gt;           Your own idea, rewritten by the Idea Scout
 /typed [list|show|validate|approve|degrade|retire|explain|executions|execution|
         cancel|pause|resume|reconcile|disable|enable]
                               Typed procedures: admission, executions, reconciliation
@@ -1913,8 +1976,10 @@ models:
           crash reconciliation, structured delegation and durable waits, conservative learning from
           real tool traces with manual promotion, operator controls under <code>/typed</code>, an idle
           Evolver on an empty backlog, and improvements verified only by real observations. Accepted
-          against all eight core gates, 60 acceptance tests and 12 benchmarks, and validated on a local
-          model.
+          against all eight core gates, 60 acceptance tests and 12 benchmarks, after two independent
+          review passes whose findings were each fixed with a regression test first, and validated on a
+          local model. The same release adds the Idea Scout, the one agent that proposes backlog items,
+          each moved into the backlog only once a human approves it, by thumbs-up if they like.
         </p>
       </aside>
 
