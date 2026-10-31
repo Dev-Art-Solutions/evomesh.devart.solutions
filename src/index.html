@@ -149,6 +149,8 @@
         <li><a href="#skills"><span class="ev-numeral">VII</span><span>Skills and tools</span></a>
           <ul>
             <li><a href="#custom-tools">Custom tools</a></li>
+            <li><a href="#crawler">The Crawler</a></li>
+            <li><a href="#knowledge">Wiki, reports, email, MCP</a></li>
           </ul>
         </li>
         <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
@@ -159,7 +161,12 @@
             <li><a href="#ideas">Ideas</a></li>
           </ul>
         </li>
-        <li><a href="#harness"><span class="ev-numeral">XI</span><span>The harness</span></a></li>
+        <li><a href="#harness"><span class="ev-numeral">XI</span><span>The harness</span></a>
+          <ul>
+            <li><a href="#harness-shell">The shell tool</a></li>
+            <li><a href="#harness-codex">What we took from Codex</a></li>
+          </ul>
+        </li>
         <li><a href="#configuration"><span class="ev-numeral">XII</span><span>Configuration</span></a></li>
         <li><a href="#console"><span class="ev-numeral">XIII</span><span>Console</span></a></li>
         <li><a href="#philosophy"><span class="ev-numeral">XIV</span><span>Philosophy</span></a></li>
@@ -1141,6 +1148,51 @@ watch:
           of request arrives.
         </p>
       </aside>
+
+      <h3 class="ev-subhead" id="crawler">The Crawler, and eight ways in</h3>
+      <p>
+        The <code>web-crawler</code> template gives an agent a site and what you care about on it, and
+        it crawls, schedules and delivers. A page that refuses one fetcher no longer ends the crawl.
+        Every page goes through a fallback chain: Scrapling, plain HTTP, curl, a headless browser, the
+        stealth browser, the local Chrome or Edge, and finally the Wayback Machine's copy or r.jina.ai's
+        reading of it. Each result is judged rather than trusted by its exit code. A 403, a bot wall
+        (Cloudflare, DataDome, PerimeterX, Imperva) or an empty JavaScript shell counts as a failure,
+        and the next way is tried.
+      </p>
+      <p>
+        Each page says which way got it (<code>[via stealth]</code>). What worked on a site is
+        remembered in the agent's <code>crawls/strategies.json</code> and tried first next time, and a
+        start page with no links is crawled through its sitemap or RSS feed instead. The
+        <code>fetch_page</code> tool fetches one URL by a chosen method, or with
+        <code>"probe": true</code> tries every method and reports which one works. A private or
+        localhost URL never goes to the remote copies, and an answer built from an archived copy says
+        so first.
+      </p>
+      <aside class="ev-callout ev-callout-experimentum">
+        <span class="ev-label">Experimentum</span>
+        <p>
+          The browsers skip images, fonts and media. An ad-heavy idealo.de crawl went from
+          2 min 37 s to 29 s.
+        </p>
+      </aside>
+
+      <h3 class="ev-subhead" id="knowledge">A wiki, a report journal, email and MCP</h3>
+      <p>
+        Every ordinary agent keeps a knowledge wiki after Karpathy's "LLM wiki". <code>raw/</code>
+        holds what memory compaction folds away, word for word; <code>pages/</code>, an index and a
+        log hold what the agent learned from it. The agent reaches it through <code>wiki_search</code>,
+        <code>wiki_read</code> and <code>wiki_write</code>, the index lines relevant to the moment ride
+        in its prompt inside the memory budget, and the lint that keeps it tidy is code, not a model.
+      </p>
+      <p>
+        Every report a recurring goal announces is written to the agent's <code>reports.md</code> by
+        the mesh, not by the model: <code>/reports &lt;agent&gt; [n]</code> and the
+        <code>recent_reports</code> tool read it back, so "the last ten analyses" no longer depends on
+        a log a small model kept by hand. <code>send_email</code> is offered only to an agent granted a
+        named SMTP account, behind a recipient allow-list, an hourly limit and an audit file. MCP
+        servers are tool sources with access per agent (system agents get none by default) and a tool
+        allow-list per server. And EvoMesh itself is an MCP server, over the control port.
+      </p>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -1632,10 +1684,16 @@ bdi.py:reconsider() decides, and it never calls a model.
       <p>
         <code>harness.shell_allow</code> is an allow-list of program names, empty by default — with
         nothing in it the tool is not offered to the model at all. There is no shell interpreter
-        behind it: the command is split and run directly, so <code>|</code>, <code>&amp;&amp;</code>
-        and <code>$(…)</code> are arguments rather than operators, and <code>curl x | python</code>
-        is refused for <code>curl</code>. Everything runs in the job root, and one command is
-        bounded by <code>harness.shell_seconds</code>.
+        behind it. A script of plain commands joined by <code>&amp;&amp;</code>, <code>||</code>,
+        <code>;</code> and <code>|</code> is split into its commands, and each one is checked against
+        the list on its own. <code>head</code>, <code>tail</code>, <code>grep</code>, <code>wc</code>,
+        <code>sort</code>, <code>uniq</code> and <code>cat</code> after a pipe are applied to the text
+        in Python and never run as programs. <code>2&gt;&amp;1</code> and <code>&gt;/dev/null</code>
+        are accepted. <code>$(…)</code>, subshells and a redirect into a file are refused, and
+        <code>curl x | python</code> runs neither side. Read-only commands such as <code>ls</code>,
+        <code>cat</code> and <code>find</code> are answered by the harness's own tools. Everything runs
+        in the job root, a script shares one <code>harness.shell_seconds</code>, and a child process
+        gets no stdin at all.
       </p>
       <aside class="ev-callout ev-callout-cautio">
         <span class="ev-label">Cautio</span>
@@ -1644,6 +1702,38 @@ bdi.py:reconsider() decides, and it never calls a model.
           and a shell tool makes that sentence matter more rather than less.
         </p>
       </aside>
+
+      <h3 class="ev-subhead" id="harness-codex">What we took from Codex</h3>
+      <p>
+        For <code>v0.5.0-alpha.1</code> we read the source of OpenAI's Codex CLI and measured it against
+        our own record first: the last 501 harness sessions, in which 36% of all tool calls had been
+        refused. Most refusals were a model writing the way a terminal is written —
+        <code>python x.py 2&gt;&amp;1 | head -40</code>,
+        <code>find / -name config.json 2&gt;/dev/null | grep -v node_modules | head</code>,
+        <code>ls &amp;&amp; echo --- &amp;&amp; cat config.json</code> — and every refusal cost a step
+        and taught nothing, because the next call had the same shape. What we took, and only where
+        the numbers said it would pay:
+      </p>
+      <ul>
+        <li>Codex's <em>word-only command sequence</em>: the script splitting described above.
+          Replayed against the log, 1,708 of 1,962 refused shell calls would now run.</li>
+        <li>Children spawned with no stdin, and a timed-out command that returns what it printed
+          before it was stopped instead of nothing.</li>
+        <li>Long output cut from the middle, keeping a third of the head and two thirds of the tail,
+          so the verdict a test run prints last reaches the model. Only for commands: a read pages
+          by offset, and the news tools put the newest item first.</li>
+        <li>The leniency of Codex's <code>apply_patch</code>: an <code>edit</code> whose anchor misses
+          only by trailing whitespace, a consistent indentation shift, typographic quotes and dashes,
+          or a copied line-number prefix lands — but only when exactly one place matches, and a
+          shifted anchor shifts its replacement the same way, so a block's nesting never changes.</li>
+        <li><code>write</code> may replace a file the job has already read.</li>
+      </ul>
+      <p>
+        And what we left: a model-written summary when the transcript is compacted costs a whole turn
+        on a slow local model, so compaction here stays mechanical; a plan tool adds steps a small
+        model cannot spare. The same reading found a plain bug as well — the NewsAnalyzer had never
+        been given its own <code>config.json</code>, and 499 of its last 501 jobs went looking for it.
+      </p>
 
       <h3 class="ev-subhead" id="harness-agents">Not only the Evolver</h3>
       <p>
@@ -1979,7 +2069,12 @@ models:
           against all eight core gates, 60 acceptance tests and 12 benchmarks, after two independent
           review passes whose findings were each fixed with a regression test first, and validated on a
           local model. The same release adds the Idea Scout, the one agent that proposes backlog items,
-          each moved into the backlog only once a human approves it, by thumbs-up if they like.
+          each moved into the backlog only once a human approves it, by thumbs-up if they like. And,
+          since <code>v0.5.0-alpha.1</code>, a shell that runs the scripts a model actually writes and
+          an <code>edit</code> as forgiving as Codex's patch tool; the Crawler's eight-way fallback
+          chain; a knowledge wiki and a report journal for every ordinary agent; SMTP email and MCP
+          servers behind per-agent grants, with EvoMesh itself as an MCP server; and a Telegram
+          command menu with inline buttons.
         </p>
       </aside>
 
@@ -2010,7 +2105,9 @@ models:
         <p class="ev-section-summary">Where the work goes next.</p>
       </header>
       <p>
-        The core architecture is frozen as of <code>v0.4.0-alpha.1</code>. What comes next is use,
+        The core architecture is frozen as of <code>v0.4.0-alpha.1</code>, and
+        <code>v0.5.0-alpha.1</code> kept it that way: everything in it arrived through tools,
+        templates and the harness. What comes next is use,
         not another redesign: bounded real workflows run with a human watching, with new adapters,
         checks, procedures and templates added through the stable extension points. Architecture work
         reopens only for a reproducible defect, a measured bottleneck, or a real product need that does
