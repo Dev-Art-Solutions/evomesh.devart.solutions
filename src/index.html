@@ -151,6 +151,7 @@
             <li><a href="#custom-tools">Custom tools</a></li>
             <li><a href="#crawler">The Crawler</a></li>
             <li><a href="#knowledge">Wiki, reports, email, MCP</a></li>
+            <li><a href="#capabilities">Capability management</a></li>
           </ul>
         </li>
         <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
@@ -1193,6 +1194,84 @@ watch:
         servers are tool sources with access per agent (system agents get none by default) and a tool
         allow-list per server. And EvoMesh itself is an MCP server, over the control port.
       </p>
+
+      <h3 class="ev-subhead" id="capabilities">Capability management</h3>
+      <p>
+        Tools, skills and MCP servers stay in their own registries. Since <code>v0.6.0-alpha.1</code>,
+        <code>/capabilities</code> reads all three and reports what a job can actually use, and why
+        anything else is not usable: <code>inactive</code> (its program is not in
+        <code>harness.shell_allow</code>), <code>missing-dependency</code>, <code>invalid</code>, or for an
+        MCP server <code>misconfigured</code>, <code>not-connected</code> or <code>unreachable</code>. It is a
+        report, and it installs nothing. A tool can declare what it needs with
+        <code>requires: ["python:docx", "program:git", "file:data/model.json"]</code>. These are checked,
+        never installed, and <code>python:</code> is asked of the interpreter the tool's own command runs.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/capabilities tools</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">tools: 11 available, 1 invalid, 1 missing-dependency
+  available: check-site, chrome-browser, crawl_records, crawl_schedule, crawl_site, ...
+  half-copied [invalid] tools/half-copied
+      no TOOL.md
+  document_read [missing-dependency] tools/document_read
+      program not found: .runtime/docs/Scripts/python.exe</code></pre>
+      </div>
+
+      <p>
+        <strong>Refresh without a restart.</strong> A tool that arrives by <code>git pull</code> or by
+        hand is live for the next job after <code>/tool refresh</code>. <code>/capabilities refresh</code>
+        also rescans <code>skills/</code> and drops MCP connections so each re-lists its tools. Changes
+        are compared by content, so an edited script counts as updated.
+      </p>
+      <p>
+        <strong>Installs are staged.</strong> A new version is copied to
+        <code>.runtime/capabilities/staging</code> and validated there: it must parse, its name must
+        match, and every file its command names under <code>{tool_dir}</code> must exist. Only then is
+        it swapped in by renaming. The version it replaces is kept, and <code>/tool rollback</code> puts it
+        back. A bundle that fails, or a swap Windows blocks because a script is open, leaves the
+        installed tool as it was.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>staged install and rollback</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">&gt; /tool validate D:/incoming/word_count
+word_count: valid (available)
+&gt; /tool install D:/incoming/word_count
+Installed 'word_count': Count the words in a text file. (tools/word_count/TOOL.md)
+&gt; /tool install D:/incoming-broken/word_count
+Could not install the tool: InvalidToolError: word_count: refused -- its command needs
+scripts/count.py, which the bundle does not contain
+&gt; /tool rollback word_count
+Rolled back 'word_count' to its previous version (tools/word_count/TOOL.md).</code></pre>
+      </div>
+
+      <p>
+        <strong>One name, one MCP server.</strong> Connections are matched on the whole config, not
+        the name, so an agent's own <code>files</code> server and a different mesh-wide
+        <code>files</code> server never share a connection. <code>/mcp servers</code> marks the pair as a
+        conflict and shows each server's last error, when it happened, and the time to the next
+        connect attempt. <code>/mcp check</code> connects now:
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>/mcp check fixture</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">fixture: connected in 1.0s, 1 tools
+    stdio: python tests/fixtures/mcp_stdio_server.py
+    tools: echo
+    ! tools filter names what the server does not offer: search</code></pre>
+      </div>
+
+      <p>
+        <strong>Grants are unchanged, and now visible.</strong> An agent with no <code>tools:</code> or
+        <code>mcp:</code> list still gets every installed tool and every mesh-wide server (a system agent
+        none), so a tool installed tomorrow reaches it without a grant.
+        <code>/capabilities grants</code> flags these agents. <code>/capabilities pin &lt;agent&gt;</code>
+        writes the agent's current access out as explicit lists, so its access stays exactly the same,
+        and from then on <code>/tool grant|revoke</code> and <code>/mcp grant|revoke</code> edit those
+        lists. What an agent sees stays small too: the skills catalog in front of every job is capped
+        at <code>harness.skill_catalog_chars</code> (2400 by default). Over the cap, the agent's own
+        skills and those matching the job keep their full line, and the rest are listed by name.
+      </p>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -1848,6 +1927,12 @@ models:
 /status                       Environment and provider health
 /agents                       Agents with desired status and live phase
 /skills                       List available skills
+/tools                        List custom tools, and which are inactive
+/tool install|refresh|validate|rollback  Install staged, rescan, check, put the last version back
+/tool grant|revoke &lt;agent&gt; &lt;tool&gt;  Edit the tools an agent's jobs are offered
+/capabilities [tools|skills|mcp|check|refresh|grants|pin &lt;agent&gt;]
+                              What is installed, what is usable, and why not
+/mcp servers|check [server]   MCP servers: state, owners, last error, config problems
 /models [provider]            List models exposed by a provider
 /chat &lt;agent-name&gt;            Select an agent
 /model &lt;agent&gt; &lt;model&gt; [prov] Change one agent's provider/model
@@ -2074,7 +2159,10 @@ models:
           an <code>edit</code> as forgiving as Codex's patch tool; the Crawler's eight-way fallback
           chain; a knowledge wiki and a report journal for every ordinary agent; SMTP email and MCP
           servers behind per-agent grants, with EvoMesh itself as an MCP server; and a Telegram
-          command menu with inline buttons.
+          command menu with inline buttons. And, since <code>v0.6.0-alpha.1</code>, capability
+          management: <code>/capabilities</code> says what a job can use and why the rest cannot be
+          used, tools refresh without a restart, installs are staged and can be rolled back, and
+          two different MCP servers under one name no longer share a connection.
         </p>
       </aside>
 
