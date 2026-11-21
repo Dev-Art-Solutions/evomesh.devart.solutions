@@ -152,6 +152,7 @@
             <li><a href="#crawler">The Crawler</a></li>
             <li><a href="#knowledge">Wiki, reports, email, MCP</a></li>
             <li><a href="#capabilities">Capability management</a></li>
+            <li><a href="#browser">Browser automation</a></li>
           </ul>
         </li>
         <li><a href="#permissions"><span class="ev-numeral">VIII</span><span>Permissions</span></a></li>
@@ -1272,6 +1273,60 @@ Rolled back 'word_count' to its previous version (tools/word_count/TOOL.md).</co
         at <code>harness.skill_catalog_chars</code> (2400 by default). Over the cap, the agent's own
         skills and those matching the job keep their full line, and the rest are listed by name.
       </p>
+
+      <h3 class="ev-subhead" id="browser">Browser automation</h3>
+      <p>
+        Since <code>v0.7.0-alpha.1</code>, an agent with a grant can drive Chrome through the
+        <code>browser</code> tool, one structured JSON request per call. It can navigate, inspect,
+        click, type, fill forms, manage tabs and take screenshots. It works in
+        <strong>EvoMesh's own Chrome</strong>, a separate process on a dedicated profile in
+        <code>data/browser/profile</code>. <code>/browser start</code> launches it and
+        <code>/browser stop</code> stops only that process. Your own Chrome is used only when you
+        grant it explicitly, with <code>/browser grant &lt;agent&gt; interact user</code>.
+      </p>
+      <p>
+        The agent starts from a compact <code>snapshot</code>: the URL, a window of the visible text,
+        numbered elements with refs, links, forms, alerts, and a <code>human_required</code> flag when
+        the page shows a CAPTCHA. Actions target an element by that ref, or by role and accessible
+        name, label, placeholder, visible text or CSS. A target that matches several elements, or is
+        hidden, disabled, covered or stale, is an error that lists the candidates. It is never
+        replaced by a guess.
+      </p>
+
+      <div class="ev-code">
+        <div class="ev-code-head"><span>one search, step by step</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-json">{"action": "navigate", "url": "https://search.example/"}
+{"action": "snapshot"}
+{"action": "fill", "target": {"ref": "k3x9a1:e3"}, "value": "Python programming tutorials"}
+{"action": "press_key", "target": {"ref": "k3x9a1:e3"}, "key": "Enter"}
+{"action": "wait_for_element", "target": {"css": "#results a"}, "timeout_seconds": 10}
+{"action": "get_links", "contains": "python", "limit": 10}
+{"action": "new_tab", "url": "https://docs.python.org/3/tutorial/"}</code></pre>
+      </div>
+
+      <p>
+        <strong>The boundary is in the mesh process, not in the prompt.</strong> A <code>read</code>
+        grant gets read actions only. Navigation, clicks, typing and tabs need
+        <code>interact</code>, and only a console command sets a grant. Payments, sending or
+        publishing, deleting, account changes, submitting a password and installing software stop
+        with <code>confirmation_required</code> whatever the grant. That check runs on what the page
+        says the element is. You are told, and <code>/browser approve &lt;n&gt;</code> lets that one
+        exact action through once. There is no action that runs JavaScript. Page text is marked
+        untrusted, password and card values are never returned, and screenshots are files in the
+        agent's own workspace. The bridge listens on loopback with a random token per Chrome
+        profile, and that is how EvoMesh tells its own Chrome from yours.
+      </p>
+
+      <aside class="ev-callout ev-callout-cautio">
+        <span class="ev-label">One manual step</span>
+        <p>
+          Branded Chrome 137 and later ignores <code>--load-extension</code>, and EvoMesh does not
+          install extensions on its own. After <code>scripts/install-chrome-bridge.ps1</code> and
+          <code>/browser start</code>, load <code>browser-extension/</code> unpacked in that window
+          once (<code>chrome://extensions</code>, Developer mode). <code>/browser status</code> says
+          what is still missing.
+        </p>
+      </aside>
     </section>
 
     <div class="ev-divider"><span>◇</span></div>
@@ -1933,6 +1988,9 @@ models:
 /capabilities [tools|skills|mcp|check|refresh|grants|pin &lt;agent&gt;]
                               What is installed, what is usable, and why not
 /mcp servers|check [server]   MCP servers: state, owners, last error, config problems
+/browser status|start|stop    EvoMesh's own Chrome on its own profile; never yours
+/browser grant &lt;agent&gt; read|interact [user]  The browser tool; 'user' = your own Chrome
+/browser pending|approve|deny &lt;n&gt;  Sensitive browser actions waiting for you
 /models [provider]            List models exposed by a provider
 /chat &lt;agent-name&gt;            Select an agent
 /model &lt;agent&gt; &lt;model&gt; [prov] Change one agent's provider/model
@@ -2162,7 +2220,10 @@ models:
           command menu with inline buttons. And, since <code>v0.6.0-alpha.1</code>, capability
           management: <code>/capabilities</code> says what a job can use and why the rest cannot be
           used, tools refresh without a restart, installs are staged and can be rolled back, and
-          two different MCP servers under one name no longer share a connection.
+          two different MCP servers under one name no longer share a connection. And, since
+          <code>v0.7.0-alpha.1</code>, browser automation: EvoMesh's own Chrome on a dedicated
+          profile, structured actions over deterministic element targeting, compact snapshots and
+          screenshots, per-agent grants, and a human confirmation for anything sensitive.
         </p>
       </aside>
 
