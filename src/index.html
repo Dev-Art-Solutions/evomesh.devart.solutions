@@ -130,6 +130,7 @@
             <li><a href="#cadence">Goals and their own cadence</a></li>
             <li><a href="#architect">Agent Architect</a></li>
             <li><a href="#cooperation">Cooperation</a></li>
+            <li><a href="#manager">The Manager</a></li>
           </ul>
         </li>
         <li><a href="#bdi"><span class="ev-numeral">V</span><span>Cognition</span></a>
@@ -580,6 +581,39 @@ evomesh&gt; /confirm</code></pre>
         revised belief becomes a fact with its source (<code>Guardian.mesh.degraded</code>), every file
         a harness job writes becomes an artifact, and open work items are listed there too. It is
         bounded, persisted across restarts, and part of every agent's view of the world.
+      </p>
+
+      <h3 id="manager">The Manager</h3>
+      <p>
+        Since <code>v0.8.0-alpha.1</code>, one agent can be your point of contact for all the
+        others. Ask the Manager anything, in any language: the latest news, a site to scrape
+        every morning, what another agent is doing. It reads the roster to find who owns the
+        request, then asks that agent (<code>ask_agent</code>) or hands it the work as a goal
+        (<code>assign_task</code>). When nobody owns it, it does the work itself. Every other
+        agent stays as it was, and you can still talk to any of them directly.
+      </p>
+      <p>
+        Work it hands out is followed. When the goal finishes, fails or gets stuck, the Manager
+        writes to you on its own line, with its own Telegram bot if you give it one. It sends
+        the result itself, not the other agent's account of the work: when the closing report
+        only describes the result, it asks the agent for the real thing first.
+      </p>
+      <div class="ev-code">
+        <div class="ev-code-head"><span>console</span><button class="ev-copy" type="button" data-copy></button></div>
+<pre><code class="language-plaintext">/agent-template spawn manager Manager
+/telegram set Manager &lt;token&gt;        its own bot, made with @BotFather
+/manager tasks                what it handed out, and the state of each
+/manager pending              commands it wants to run that change the mesh
+/manager approve|deny &lt;n&gt;     run one once, or refuse it</code></pre>
+      </div>
+      <p>
+        It runs EvoMesh's commands for you, and the boundary is in code, not in the prompt.
+        A command that only reads (<code>/agents</code>, <code>/goals &lt;agent&gt;</code>,
+        <code>/status</code>) runs at once. Anything that changes the mesh, such as a grant, a
+        goal edit or a restart, is sent to you as <code>/manager approve &lt;n&gt;</code>. Which
+        is which is a table, never the model's opinion, and <code>/exit</code> and
+        <code>/manager</code> itself are out of its reach, so it cannot approve its own
+        requests or widen its own access.
       </p>
     </section>
 
@@ -1991,6 +2025,8 @@ models:
 /browser status|start|stop    EvoMesh's own Chrome on its own profile; never yours
 /browser grant &lt;agent&gt; read|interact [user]  The browser tool; 'user' = your own Chrome
 /browser pending|approve|deny &lt;n&gt;  Sensitive browser actions waiting for you
+/manager set|unset &lt;agent&gt;    Make it your point of contact
+/manager tasks|pending|approve|deny &lt;n&gt;  Its handed-out work, and commands waiting for you
 /models [provider]            List models exposed by a provider
 /chat &lt;agent-name&gt;            Select an agent
 /model &lt;agent&gt; &lt;model&gt; [prov] Change one agent's provider/model
@@ -2223,7 +2259,10 @@ models:
           two different MCP servers under one name no longer share a connection. And, since
           <code>v0.7.0-alpha.1</code>, browser automation: EvoMesh's own Chrome on a dedicated
           profile, structured actions over deterministic element targeting, compact snapshots and
-          screenshots, per-agent grants, and a human confirmation for anything sensitive.
+          screenshots, per-agent grants, and a human confirmation for anything sensitive. And,
+          since <code>v0.8.0-alpha.1</code>, the Manager: one agent to talk to, which routes
+          each request to the agent that owns it, follows the work and reports back, and runs
+          commands with your approval for anything that changes the mesh.
         </p>
       </aside>
 
