@@ -602,18 +602,39 @@ evomesh&gt; /confirm</code></pre>
         <div class="ev-code-head"><span>console</span><button class="ev-copy" type="button" data-copy></button></div>
 <pre><code class="language-plaintext">/agent-template spawn manager Manager
 /telegram set Manager &lt;token&gt;        its own bot, made with @BotFather
-/manager tasks                what it handed out, and the state of each
-/manager pending              commands it wants to run that change the mesh
-/manager approve|deny &lt;n&gt;     run one once, or refuse it</code></pre>
+/manager tasks                what it runs for you, numbered, and what finished
+/manager stop [&lt;n&gt;]            stop one by its number, or everything
+/manager trust on|off         let what you asked for run, grants included
+/coordination &lt;agent&gt; on      give any agent the same tools</code></pre>
       </div>
       <p>
+        Since <code>v0.9.0-alpha.1</code>, it is built to be lived with. It repeats anything on a
+        clock: a message every second, or a question to an agent every ten minutes with the
+        answer passed on. Only what is new is sent, and repeats survive a restart. It sends
+        separate messages when you ask for things one at a time. Ask it for its tasks and it
+        lists them with numbers: its repeats, every goal it put on another agent, and every
+        goal another agent put on it. Every goal says who asked for it, so work you gave one
+        agent that ended up on another is never lost. Say <em>stop 2</em>, or <em>stop the
+        news</em>, or just <em>stop</em>: that is matched by words before any model reads it,
+        so it stops at once. None of this is the Manager's alone. <code>/coordination &lt;agent&gt;
+        on</code> gives any agent the same tools.
+      </p>
+      <p>
         It runs EvoMesh's commands for you, and the boundary is in code, not in the prompt.
-        A command that only reads (<code>/agents</code>, <code>/goals &lt;agent&gt;</code>,
-        <code>/status</code>) runs at once. Anything that changes the mesh, such as a grant, a
-        goal edit or a restart, is sent to you as <code>/manager approve &lt;n&gt;</code>. Which
-        is which is a table, never the model's opinion, and <code>/exit</code> and
-        <code>/manager</code> itself are out of its reach, so it cannot approve its own
-        requests or widen its own access.
+        Which command does what is a table, never the model's opinion:
+      </p>
+      <ul>
+        <li>A command that only reads (<code>/agents</code>, <code>/goals &lt;agent&gt;</code>,
+          <code>/status</code>) runs at once.</li>
+        <li>A command that changes what agents do (goals, start and stop, the model) runs at once
+          when your own message asked for it.</li>
+        <li>A command that changes what agents may do (a grant, an install, a restart) waits for a
+          plain "yes" from you, unless you turned <code>/manager trust on</code>.</li>
+        <li>Anything started by a repeat, a report or another agent's answer always waits.</li>
+      </ul>
+      <p>
+        <code>/exit</code> and <code>/manager</code> itself are out of its reach, so it cannot
+        approve its own requests or widen its own access.
       </p>
     </section>
 
@@ -2026,7 +2047,10 @@ models:
 /browser grant &lt;agent&gt; read|interact [user]  The browser tool; 'user' = your own Chrome
 /browser pending|approve|deny &lt;n&gt;  Sensitive browser actions waiting for you
 /manager set|unset &lt;agent&gt;    Make it your point of contact
-/manager tasks|pending|approve|deny &lt;n&gt;  Its handed-out work, and commands waiting for you
+/manager tasks|stop [&lt;n&gt;]     What it runs for you, numbered; stop one, or all
+/manager pending|approve|deny &lt;n&gt;  Commands waiting for your yes
+/manager trust on|off         Let what you asked for run, grants included
+/coordination &lt;agent&gt; on|off  Its tools for handing out work, repeats and stop
 /models [provider]            List models exposed by a provider
 /chat &lt;agent-name&gt;            Select an agent
 /model &lt;agent&gt; &lt;model&gt; [prov] Change one agent's provider/model
@@ -2262,7 +2286,10 @@ models:
           screenshots, per-agent grants, and a human confirmation for anything sensitive. And,
           since <code>v0.8.0-alpha.1</code>, the Manager: one agent to talk to, which routes
           each request to the agent that owns it, follows the work and reports back, and runs
-          commands with your approval for anything that changes the mesh.
+          commands with your approval for anything that changes the mesh. And, since
+          <code>v0.9.0-alpha.1</code>, repeats on a clock that survive restarts, one numbered
+          list of what an agent runs, stop by number or by name, goals that say who asked for
+          them, and the same tools for any agent.
         </p>
       </aside>
 
